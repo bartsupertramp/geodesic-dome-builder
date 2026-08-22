@@ -1,0 +1,22 @@
+{
+  "name": "4V Geodesic Dome & Zome Builder",
+  "short_name": "DomeBuilder",
+  "description": "Kalkulator 3D kopuł geodezyjnych 1V-4V oraz Zome z listą cięć drewna dla stolarni",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f141c",
+  "theme_color": "#00d1b2",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

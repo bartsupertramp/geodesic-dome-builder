@@ -1,0 +1,316 @@
+/* CSS Style dla Aplikacji 4V Geodesic Dome Builder & Node Visualizer */
+
+:root {
+    --bg-dark: #0f141c;
+    --panel-bg: #18202c;
+    --panel-border: #2b3846;
+    --primary: #00d1b2;
+    --primary-hover: #00b89c;
+    --text-light: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent-red: #ff3860;
+    --accent-blue: #3273dc;
+    --accent-yellow: #ffdd57;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Nagłówek Górny */
+header {
+    background-color: var(--panel-bg);
+    border-bottom: 1px solid var(--panel-border);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 56px;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-icon {
+    font-size: 24px;
+}
+
+h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.badge-4v {
+    background-color: var(--primary);
+    color: #000000;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Główny Kontener Aplikacji */
+.app-container {
+    display: grid;
+    grid-template-columns: 320px 1fr 380px;
+    flex: 1;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+}
+
+/* Panele Boczne */
+.panel {
+    background-color: var(--panel-bg);
+    border-right: 1px solid var(--panel-border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+}
+
+.panel-right {
+    border-right: none;
+    border-left: 1px solid var(--panel-border);
+}
+
+.panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--primary);
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 8px;
+}
+
+/* Formularze i Wejścia */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+input, select {
+    background-color: #10161f;
+    border: 1px solid var(--panel-border);
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input:focus, select:focus {
+    border-color: var(--primary);
+}
+
+.btn {
+    background-color: var(--primary);
+    color: #000000;
+    font-weight: 600;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+    background-color: #2b3846;
+    color: #ffffff;
+}
+
+.btn-secondary:hover {
+    background-color: #3b4c5e;
+}
+
+/* Wariacja dla Widoku 3D */
+.viewport-3d {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #121820;
+}
+
+#canvas-3d-container {
+    width: 100%;
+    height: 100%;
+}
+
+.viewport-overlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background-color: rgba(24, 32, 44, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--panel-border);
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    z-index: 10;
+}
+
+/* Podgląd 2D Węzła i Wykres Wypukłości */
+.canvas-2d-wrapper {
+    background-color: #1a222d;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+canvas {
+    border-radius: 6px;
+    max-width: 100%;
+}
+
+.node-summary-card {
+    background-color: #10161f;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.node-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+.node-pentagon {
+    background-color: rgba(255, 56, 96, 0.2);
+    color: var(--accent-red);
+    border: 1px solid var(--accent-red);
+}
+
+.node-hexagon {
+    background-color: rgba(50, 115, 220, 0.2);
+    color: var(--accent-blue);
+    border: 1px solid var(--accent-blue);
+}
+
+.node-base {
+    background-color: rgba(255, 221, 87, 0.2);
+    color: var(--accent-yellow);
+    border: 1px solid var(--accent-yellow);
+}
+
+.node-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    font-size: 12px;
+}
+
+/* Tabele */
+.cut-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.cut-table th, .cut-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+.cut-table th {
+    background-color: #10161f;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.strut-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.table-total {
+    background-color: #10161f;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+/* Sekcja Podsumowania Na Dole */
+.bottom-drawer {
+    grid-column: 1 / -1;
+    background-color: var(--panel-bg);
+    border-top: 1px solid var(--panel-border);
+    padding: 12px 20px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Rysowanie na potrzeby druku */
+@media print {
+    body {
+        background-color: #ffffff;
+        color: #000000;
+        overflow: visible;
+    }
+    .header-actions, .viewport-3d, .panel-left {
+        display: none !important;
+    }
+    .app-container {
+        display: block;
+        height: auto;
+    }
+    .panel-right {
+        border: none;
+    }
+    .cut-table th {
+        background-color: #f1f5f9;
+        color: #000000;
+    }
+}

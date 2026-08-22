@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4V Geodesic & Zome Builder 3D | Kalkulator dla Stolarni i Google Play</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00d1b2">
+    <!-- CDN Three.js i OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <!-- Nagłówek -->
+    <header>
+        <div class="logo-container">
+            <span class="logo-icon">🌐</span>
+            <h1>4V Geodesic & Zome Builder <span class="badge-4v">SYSTEM RUROWY PVC & ZOME</span></h1>
+        </div>
+        <div class="header-actions">
+            <button id="btn-export-csv" class="btn btn-secondary">📥 Pobierz CSV</button>
+            <button id="btn-print" class="btn btn-secondary">🖨️ Drukuj Plan</button>
+        </div>
+    </header>
+
+    <!-- Główny Układ Aplikacji -->
+    <div class="app-container">
+
+        <!-- Panel Lewy: Parametry Projektu -->
+        <aside class="panel panel-left">
+            <div class="panel-title">📐 Parametry Konstrukcji & Zome</div>
+
+            <!-- Typ Architektury -->
+            <div class="input-group">
+                <label for="select-geometry-type">Typ Architektury / Modelu:</label>
+                <select id="select-geometry-type">
+                    <option value="GEODESIC" selected>Klasyczna Kopuła Geodezyjna (Ikosaedr)</option>
+                    <option value="ZOME">Kopuła Zome (Cebulowa / Łezkowata ze zdjęcia)</option>
+                </select>
+            </div>
+
+            <!-- Częstotliwości 1V, 2V, 3V, 4V -->
+            <div class="input-group" id="group-freq-options">
+                <label for="select-frequency">Częstotliwość Siatki Geodezyjnej:</label>
+                <select id="select-frequency">
+                    <option value="1">1V (10 belek, prosta)</option>
+                    <option value="2">2V (65 belek, 2 typy)</option>
+                    <option value="3">3V (120 belek, 3 typy)</option>
+                    <option value="4" selected>4V (250 belek, domyślna)</option>
+                </select>
+            </div>
+
+            <!-- Opcje Zome (8-Zome, 10-Zome, 12-Zome) -->
+            <div class="input-group" id="group-zome-options" style="display:none;">
+                <label for="select-zome-order">Symetria / Rząd Zome (z obrazka):</label>
+                <select id="select-zome-order">
+                    <option value="8">8-Zome (Rombowa 8-kątna)</option>
+                    <option value="10" selected>10-Zome (Rombowa 10-kątna)</option>
+                    <option value="12">12-Zome (Rombowa 12-kątna - Projekt Habitat)</option>
+                </select>
+            </div>
+
+            <!-- Wyciąganie Szczytu (Apex Stretch Factor) -->
+            <div class="input-group">
+                <label for="input-apex-stretch">Wyciągnięcie Szczytu (Apex Stretch):</label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="range" id="input-apex-stretch" min="0.7" max="2.5" step="0.05" value="1.0" style="flex:1; cursor:pointer;">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="input-radius">Promień Kopuły R (metry):</label>
+                <input type="number" id="input-radius" value="3.0" step="0.1" min="0.5" max="20.0">
+            </div>
+
+            <div class="input-group">
+                <label for="input-pipe-od">Średnica Zewn. Rury PVC (mm):</label>
+                <input type="number" id="input-pipe-od" value="110" step="1" min="32" max="315">
+            </div>
+
+            <div class="input-group">
+                <label for="input-timber-w">Szerokość Drewna W (mm):</label>
+                <input type="number" id="input-timber-w" value="45" step="1" min="10" max="200">
+            </div>
+
+            <div class="input-group">
+                <label for="input-timber-h">Grubość Drewna H (mm):</label>
+                <input type="number" id="input-timber-h" value="45" step="1" min="10" max="200">
+            </div>
+
+            <div class="input-group">
+                <label for="select-truncation">Wysokość / Obcięcie Kopuły:</label>
+                <select id="select-truncation">
+                    <option value="0.5" selected>1/2 Kopuły (4/8 - Domyślna płaska podwalina)</option>
+                    <option value="0.375">3/8 Kopuły (Niska)</option>
+                    <option value="0.625">5/8 Kopuły (Wysoka)</option>
+                </select>
+            </div>
+
+            <button id="btn-recalculate" class="btn">🔄 Przelicz i Odśwież</button>
+
+            <!-- Legenda Kolorów Belek -->
+            <div style="margin-top: 10px; background: #10161f; padding: 10px; border-radius: 6px; border: 1px solid var(--panel-border);">
+                <span style="font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase;">Legenda Belek:</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; font-size: 11px;">
+                    <div><span class="strut-tag" style="background-color:#FF4136">A</span> Belka A</div>
+                    <div><span class="strut-tag" style="background-color:#0074D9">B</span> Belka B</div>
+                    <div><span class="strut-tag" style="background-color:#2ECC40">C</span> Belka C</div>
+                    <div><span class="strut-tag" style="background-color:#FFDC00; color:#000">D</span> Belka D</div>
+                    <div><span class="strut-tag" style="background-color:#B10DC9">E</span> Belka E</div>
+                    <div><span class="strut-tag" style="background-color:#FF851B">F</span> Belka F</div>
+                </div>
+            </div>
+
+            <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                <p>💡 <strong>Wskazówka:</strong> Możesz również ciągnąć złoty uchwyt ⬆️ na szczycie w 3D, aby ręcznie wyciągać wierzchołek w górę!</p>
+            </div>
+        </aside>
+
+        <!-- Główny Viewport 3D -->
+        <main class="viewport-3d">
+            <div class="viewport-overlay">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <label for="select-display-mode">Widok 3D:</label>
+                    <select id="select-display-mode" style="padding: 4px 8px; font-size: 12px;">
+                        <option value="STRUT_TYPES" selected>Kolory Belek</option>
+                        <option value="PITCH_HEATMAP">Mapa Wypukłości Węzłów</option>
+                        <option value="WOOD">Naturalne Drewno</option>
+                        <option value="FACES">Z Poszyciem Trójkątnym</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:6px; border-left: 1px solid var(--panel-border); padding-left: 10px;">
+                    <input type="checkbox" id="chk-show-node-labels" checked>
+                    <label for="chk-show-node-labels" style="cursor:pointer; font-size: 12px;">Węzły (W1-W7)</label>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" id="chk-show-strut-labels" checked>
+                    <label for="chk-show-strut-labels" style="cursor:pointer; font-size: 12px;">Belek (A1, B1...)</label>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:6px; border-left: 1px solid var(--panel-border); padding-left: 10px;">
+                    <label for="input-label-scale" style="font-size: 11px;">Rozmiar 3D:</label>
+                    <input type="range" id="input-label-scale" min="0.2" max="1.5" step="0.05" value="0.5" style="width: 60px; cursor: pointer;">
+                </div>
+            </div>
+
+            <div id="canvas-3d-container"></div>
+        </main>
+
+        <!-- Panel Prawy: Inspektor Wybranego Węzła -->
+        <aside class="panel panel-right">
+            <div class="panel-title">🔍 Inspektor Wybranego Węzła</div>
+
+            <!-- Widok Złącza 2D Od Góry -->
+            <div class="canvas-2d-wrapper">
+                <span style="font-size: 11px; color: var(--text-muted);">Widok Złącza Rurowego Od Góry (Miter Angles)</span>
+                <canvas id="canvas-2d" width="340" height="260"></canvas>
+            </div>
+
+            <!-- Profil Wypukłości -->
+            <div class="canvas-2d-wrapper">
+                <span style="font-size: 11px; color: var(--text-muted);">Profil Wypukłości (Pitch Angle / Ugięcie Ramion)</span>
+                <canvas id="canvas-profile" width="340" height="120"></canvas>
+            </div>
+
+            <!-- Tabela Szczegółów Węzła -->
+            <div id="node-detail-content"></div>
+        </aside>
+
+    </div>
+
+    <!-- Sekcja Dolna: Podsumowania (Licznik Węzłów & Szczegółowa Lista Cięć) -->
+    <div class="bottom-drawer">
+        <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px;">
+            <div>
+                <div class="panel-title" style="margin-bottom: 8px;">🏷️ Licznik Rodzajów Węzłów (Node Classification W1-W7)</div>
+                <div id="node-type-summary"></div>
+            </div>
+
+            <div>
+                <div class="panel-title" style="margin-bottom: 8px;">📋 Szczegółowa Lista Cięć Belek z Wariantami Kątowymi (A1, B1...)</div>
+                <div id="cut-list-summary"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skrypty Aplikacji -->
+    <script src="js/geodesic_math.js"></script>
+    <script src="js/three_app.js"></script>
+    <script src="js/node_inspector.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

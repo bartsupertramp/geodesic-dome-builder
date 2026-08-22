@@ -1,0 +1,11 @@
+# PyInstaller & Build artifacts
+build/
+*.spec
+__pycache__/
+*.pyc
+
+# IDE & OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
