@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4V Geodesic & Zome Builder 3D | Kalkulator dla Stolarni i Google Play</title>
+    <title>Kalkulator i Wizualizator 3D Kopuły Geodezyjnej 1V-4V | Węzły Rurowe PVC</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00d1b2">
@@ -17,7 +17,7 @@
     <header>
         <div class="logo-container">
             <span class="logo-icon">🌐</span>
-            <h1>4V Geodesic & Zome Builder <span class="badge-4v">SYSTEM RUROWY PVC & ZOME</span></h1>
+            <h1>4V Geodesic Dome Builder <span class="badge-4v">SYSTEM RUROWY PVC</span></h1>
         </div>
         <div class="header-actions">
             <button id="btn-export-csv" class="btn btn-secondary">📥 Pobierz CSV</button>
@@ -30,19 +30,10 @@
 
         <!-- Panel Lewy: Parametry Projektu -->
         <aside class="panel panel-left">
-            <div class="panel-title">📐 Parametry Konstrukcji & Zome</div>
-
-            <!-- Typ Architektury -->
-            <div class="input-group">
-                <label for="select-geometry-type">Typ Architektury / Modelu:</label>
-                <select id="select-geometry-type">
-                    <option value="GEODESIC" selected>Klasyczna Kopuła Geodezyjna (Ikosaedr)</option>
-                    <option value="ZOME">Kopuła Zome (Cebulowa / Łezkowata ze zdjęcia)</option>
-                </select>
-            </div>
+            <div class="panel-title">📐 Parametry Geometrii Geodezyjnej</div>
 
             <!-- Częstotliwości 1V, 2V, 3V, 4V -->
-            <div class="input-group" id="group-freq-options">
+            <div class="input-group">
                 <label for="select-frequency">Częstotliwość Siatki Geodezyjnej:</label>
                 <select id="select-frequency">
                     <option value="1">1V (10 belek, prosta)</option>
@@ -50,24 +41,6 @@
                     <option value="3">3V (120 belek, 3 typy)</option>
                     <option value="4" selected>4V (250 belek, domyślna)</option>
                 </select>
-            </div>
-
-            <!-- Opcje Zome (8-Zome, 10-Zome, 12-Zome) -->
-            <div class="input-group" id="group-zome-options" style="display:none;">
-                <label for="select-zome-order">Symetria / Rząd Zome (z obrazka):</label>
-                <select id="select-zome-order">
-                    <option value="8">8-Zome (Rombowa 8-kątna)</option>
-                    <option value="10" selected>10-Zome (Rombowa 10-kątna)</option>
-                    <option value="12">12-Zome (Rombowa 12-kątna - Projekt Habitat)</option>
-                </select>
-            </div>
-
-            <!-- Wyciąganie Szczytu (Apex Stretch Factor) -->
-            <div class="input-group">
-                <label for="input-apex-stretch">Wyciągnięcie Szczytu (Apex Stretch):</label>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <input type="range" id="input-apex-stretch" min="0.7" max="2.5" step="0.05" value="1.0" style="flex:1; cursor:pointer;">
-                </div>
             </div>
 
             <div class="input-group">
@@ -115,7 +88,7 @@
             </div>
 
             <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-                <p>💡 <strong>Wskazówka:</strong> Możesz również ciągnąć złoty uchwyt ⬆️ na szczycie w 3D, aby ręcznie wyciągać wierzchołek w górę!</p>
+                <p>💡 <strong>Wskazówka:</strong> Kliknij dowolną belkę (np. A1, B1, B2) w tabeli na dole, aby podświetlić wszystkie belki tego wariantu na modelu 3D.</p>
             </div>
         </aside>
 

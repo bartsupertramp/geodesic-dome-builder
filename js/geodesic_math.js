@@ -1,9 +1,7 @@
 /**
- * GeodesicMath - Wszechstronny silnik matematyki sferycznej i polarnej:
- * - Częstotliwości Geodezyjne: 1V, 2V, 3V, 4V
- * - Geometria Zome (Kopuły cebulowe / łezkowate: 8-Zome, 10-Zome, 12-Zome jak na grafice Pinterest)
- * - Ręczne wyciąganie wierzchołka szczytowego (Apex Stretch Factor)
- * - Wyliczanie ucięć rurowych PVC, kątów zacięć bocznych, wariantów A1..F1 i typów węzłów W1..W7.
+ * GeodesicMath - Precyzyjny silnik matematyczny geometrii 1V, 2V, 3V, 4V (Ikosaedr Class 1 Method 1)
+ * Zorientowany w osi Y (Zenith = Y+), tworzący płaską podwalinę na poziomie Y=0,
+ * z wyznaczaniem długości docięcia drewna, kątów zacięć bocznych, wariantów A1..F1 i typów węzłów W1..W7.
  */
 
 class GeodesicMath {
@@ -143,79 +141,6 @@ class GeodesicMath {
         return { vertices, faces, edges: Array.from(edgeSet.values()) };
     }
 
-    /**
-     * Generuje rombową geometrię ZOME (Zomoid / Teardrop / Onion Architecture ze zdjęcia)
-     */
-    generateZomeMesh(nSides = 10, nLevels = 5) {
-        const vertices = [];
-        const vertMap = new Map();
-
-        const getVertId = (v) => {
-            const key = `${v[0].toFixed(6)},${v[1].toFixed(6)},${v[2].toFixed(6)}`;
-            if (!vertMap.has(key)) {
-                vertMap.set(key, vertices.length);
-                vertices.push(v);
-            }
-            return vertMap.get(key);
-        };
-
-        const grid = {};
-        // Szczyt Zome
-        grid[`0,0`] = getVertId([0.0, 1.0, 0.0]);
-
-        for (let i = 1; i <= nLevels; i++) {
-            const t = i / parseFloat(nLevels);
-            // Krzywa łezkowata (Zome teardrop profile)
-            const r_t = Math.sin(Math.PI * (1.0 - t * 0.45)) * Math.sin(t * Math.PI);
-            const y_t = 1.0 - Math.pow(t, 1.15);
-
-            for (let j = 0; j < nSides; j++) {
-                const angle = (j + (i % 2) * 0.5) * (2 * Math.PI / parseFloat(nSides));
-                const x = r_t * Math.cos(angle);
-                const z = r_t * Math.sin(angle);
-                grid[`${i},${j}`] = getVertId(this.normalize([x, y_t, z]));
-            }
-        }
-
-        const edgeSet = new Map();
-        const faces = [];
-
-        // Korona szczytowa
-        for (let j = 0; j < nSides; j++) {
-            const vTop = grid[`0,0`];
-            const vCurr = grid[`1,${j}`];
-            const vNext = grid[`1,${(j + 1) % nSides}`];
-            this.addEdge(edgeSet, vTop, vCurr);
-            faces.push([vTop, vCurr, vNext]);
-        }
-
-        // Pasma rombowe Zome
-        for (let i = 1; i < nLevels; i++) {
-            for (let j = 0; j < nSides; j++) {
-                const vA = grid[`${i},${j}`];
-                const vB = grid[`${i},${(j + 1) % nSides}`];
-                const vC = grid[`${i + 1},${j}`];
-                const vD = grid[`${i + 1},${(j + 1) % nSides}`];
-
-                this.addEdge(edgeSet, vA, vB);
-                this.addEdge(edgeSet, vA, vC);
-                this.addEdge(edgeSet, vB, vD);
-
-                faces.push([vA, vB, vC]);
-                faces.push([vB, vD, vC]);
-            }
-        }
-
-        // Krawędzie podstawy
-        for (let j = 0; j < nSides; j++) {
-            const vC = grid[`${nLevels},${j}`];
-            const vD = grid[`${nLevels},${(j + 1) % nSides}`];
-            this.addEdge(edgeSet, vC, vD);
-        }
-
-        return { vertices, faces, edges: Array.from(edgeSet.values()) };
-    }
-
     addEdge(edgeMap, v1, v2) {
         const key = v1 < v2 ? `${v1}-${v2}` : `${v2}-${v1}`;
         if (!edgeMap.has(key)) {
@@ -223,9 +148,6 @@ class GeodesicMath {
         }
     }
 
-    /**
-     * Główna funkcja przeliczająca geometrię z obsługą 1V, 2V, 3V, 4V, Zome oraz Wyciągania Szczytu (Apex Stretch)
-     */
     calculateDome(params) {
         const radius = params.radius || 3.0;
         const pipeOD = (params.pipeOD || 110) / 1000.0;
@@ -234,16 +156,8 @@ class GeodesicMath {
         const timberH = (params.timberH || 45) / 1000.0;
         const truncation = params.truncation || 0.5;
         const frequency = parseInt(params.frequency) || 4;
-        const geometryType = params.geometryType || 'GEODESIC'; // GEODESIC, ZOME
-        const zomeOrder = parseInt(params.zomeOrder) || 10;
-        const apexStretch = parseFloat(params.apexStretch) || 1.0; // Współczynnik wyciągania wierzchołka
 
-        let sphere = null;
-        if (geometryType === 'ZOME') {
-            sphere = this.generateZomeMesh(zomeOrder, 5);
-        } else {
-            sphere = this.generateSphereNV(frequency);
-        }
+        const sphere = this.generateSphereNV(frequency);
 
         let minY = -0.001;
         if (truncation === 0.375) minY = 0.276;
@@ -263,16 +177,11 @@ class GeodesicMath {
             const v = sphere.vertices[idx];
             const isBase = Math.abs(v[1] - minY) < 0.02 || v[1] <= minY + 0.01;
             
-            // Aplikacja rozciągnięcia szczytu (Apex Stretch Factor)
-            // Zmienia skok Y sfery płynnie ku wierzchołkowi
-            const heightMultiplier = 1.0 + (apexStretch - 1.0) * Math.max(0, v[1]);
-            const posY = v[1] * radius * heightMultiplier;
-
             return {
                 id: vertIndexMap.get(idx),
                 origId: idx,
-                pos: [v[0] * radius, posY, v[2] * radius],
-                unitPos: [v[0], v[1] * heightMultiplier, v[2]],
+                pos: [v[0] * radius, v[1] * radius, v[2] * radius],
+                unitPos: v,
                 neighbors: [],
                 connectedEdges: [],
                 type: isBase ? 'BASE' : 'HEXAGON',
@@ -289,10 +198,9 @@ class GeodesicMath {
                 const u1 = vertIndexMap.get(e.v1);
                 const u2 = vertIndexMap.get(e.v2);
 
-                const p1 = domeVertices[u1].pos;
-                const p2 = domeVertices[u2].pos;
-                const edgeLen = this.dist(p1, p2);
-                const chordFactor = edgeLen / radius;
+                const p1 = domeVertices[u1].unitPos;
+                const p2 = domeVertices[u2].unitPos;
+                const chordFactor = this.dist(p1, p2);
 
                 const key = chordFactor.toFixed(4);
                 if (!lengthGroups.has(key)) {
@@ -307,7 +215,7 @@ class GeodesicMath {
                     v1: u1,
                     v2: u2,
                     chordFactor: chordFactor,
-                    centerLen: edgeLen,
+                    centerLen: chordFactor * radius,
                     strutType: '',
                     isBaseEdge: isBaseEdge
                 });
@@ -315,7 +223,7 @@ class GeodesicMath {
         });
 
         const sortedGroups = Array.from(lengthGroups.values()).sort((a, b) => a.factor - b.factor);
-        const typeLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+        const typeLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
         sortedGroups.forEach((group, idx) => {
             group.type = typeLabels[idx] || `S${idx}`;
@@ -372,7 +280,7 @@ class GeodesicMath {
                 node.type = 'HEXAGON';
             }
 
-            const hubNormal = this.normalize(node.unitPos);
+            const hubNormal = node.unitPos;
             let totalPitch = 0;
 
             node.connectedEdges.forEach(edgeId => {
@@ -395,7 +303,7 @@ class GeodesicMath {
             node.pitchAngleDeg = totalPitch / (node.connectedEdges.length || 1);
         });
 
-        // Rodzaje węzłów (W1 - W7)
+        // Klasyfikacja rodzajów węzłów (W1 - W7)
         const nodeTypeMap = new Map();
 
         domeVertices.forEach(node => {
@@ -461,12 +369,12 @@ class GeodesicMath {
             };
         });
 
-        // Kąty zacięć bocznych
+        // Kąty zacięć bocznych wokół rury PVC
         const nodeDetails = {};
 
         domeVertices.forEach(node => {
             const nPos = node.pos;
-            const nNorm = this.normalize(node.unitPos);
+            const nNorm = node.unitPos;
 
             let arbitrary = [0, 0, 1];
             if (Math.abs(nNorm[2]) > 0.9) arbitrary = [1, 0, 0];
@@ -531,7 +439,7 @@ class GeodesicMath {
             };
         });
 
-        // Kody wariantów kątowych belek (A1, B1, B2...)
+        // Warianty kątowe belek (A1, B1, B2...)
         domeEdges.forEach(edge => {
             const n1Strut = nodeDetails[edge.v1].struts.find(s => s.edgeId === edge.id);
             const n2Strut = nodeDetails[edge.v2].struts.find(s => s.edgeId === edge.id);
@@ -626,9 +534,6 @@ class GeodesicMath {
             timberWMm: params.timberW,
             timberHMm: params.timberH,
             frequency,
-            geometryType,
-            zomeOrder,
-            apexStretch,
             vertices: domeVertices,
             edges: domeEdges,
             faces: domeFaces,

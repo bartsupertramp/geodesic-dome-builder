@@ -1,6 +1,6 @@
 /**
- * ThreeApp - Silnik wizualizacji 3D Three.js dla kopuł geodezyjnych 1V-4V oraz Zome
- * z uchwytem 3D do interaktywnego wyciągania wierzchołka szczytowego w górę (Apex Drag Handle).
+ * ThreeApp - Silnik wizualizacji 3D Three.js dla kopuł geodezyjnych 1V-4V
+ * ze zmniejszonymi etykietami 3D, numeracją belek A1, B1... i podświetlaniem.
  */
 
 class ThreeApp {
@@ -13,14 +13,12 @@ class ThreeApp {
 
         this.onNodeSelect = options.onNodeSelect || (() => {});
         this.onStrutSelect = options.onStrutSelect || (() => {});
-        this.onApexStretchChange = options.onApexStretchChange || (() => {});
 
         this.displayMode = 'STRUT_TYPES';
         this.showNodeLabels = true;
         this.showStrutLabels = true;
         this.labelType = 'CODE';
         this.labelScale = 0.5;
-        this.isDraggingApex = false;
         
         this.selectedNodeId = null;
         this.selectedEdgeId = null;
@@ -29,7 +27,6 @@ class ThreeApp {
         this.initLights();
         this.initControls();
         this.initRaycaster();
-        this.initDragGizmo();
 
         window.addEventListener('resize', () => this.onWindowResize());
         this.animate();
@@ -97,26 +94,7 @@ class ThreeApp {
         this.mouse = new THREE.Vector2();
 
         this.renderer.domElement.addEventListener('mousemove', (e) => this.onMouseMove(e));
-        this.renderer.domElement.addEventListener('mousedown', (e) => this.onMouseDown(e));
-        this.renderer.domElement.addEventListener('mouseup', (e) => this.onMouseUp(e));
         this.renderer.domElement.addEventListener('click', (e) => this.onClick(e));
-    }
-
-    initDragGizmo() {
-        // Uchwyt 3D do ciągnięcia wierzchołka w górę (Złoty stożek/strzałka)
-        const handleGeo = new THREE.ConeGeometry(0.12, 0.28, 12);
-        const handleMat = new THREE.MeshStandardMaterial({
-            color: 0xffdd57,
-            emissive: 0xffaa00,
-            emissiveIntensity: 0.5,
-            metalness: 0.8,
-            roughness: 0.2
-        });
-
-        this.apexHandle = new THREE.Mesh(handleGeo, handleMat);
-        this.apexHandle.rotation.x = Math.PI; // Strzałka skierowana do góry
-        this.apexHandle.userData = { type: 'APEX_HANDLE' };
-        this.scene.add(this.apexHandle);
     }
 
     setDisplayMode(mode) {
@@ -245,16 +223,10 @@ class ThreeApp {
         const boltMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.1 });
 
         this.nodeMeshes = [];
-        let topNodePos = null;
 
         domeData.vertices.forEach(node => {
             const nodeGroup = new THREE.Group();
             nodeGroup.position.set(node.pos[0], node.pos[1], node.pos[2]);
-
-            // Zapamiętaj szczytowy wierzchołek dla uchwytu 3D
-            if (!topNodePos || node.pos[1] > topNodePos.y) {
-                topNodePos = new THREE.Vector3(...node.pos);
-            }
 
             const normVec = new THREE.Vector3(node.unitPos[0], node.unitPos[1], node.unitPos[2]).normalize();
             const upVec = new THREE.Vector3(0, 1, 0);
@@ -280,7 +252,6 @@ class ThreeApp {
             this.domeGroup.add(nodeGroup);
             this.nodeMeshes.push(pipeMesh);
 
-            // Etykieta 3D Węzła
             const labelText = this.labelType === 'CODE' ? (node.nodeTypeCode || `W${node.id}`) : `#${node.id}`;
             const spriteColor = node.nodeTypeColor || '#00d1b2';
             const sprite = this.createBadgeSprite(labelText, spriteColor, 32);
@@ -289,11 +260,6 @@ class ThreeApp {
             sprite.position.copy(spritePos);
             this.nodeLabelGroup.add(sprite);
         });
-
-        // Ustaw uchwyt 3D szczytu nad najwyższym punktem
-        if (topNodePos) {
-            this.apexHandle.position.copy(topNodePos).add(new THREE.Vector3(0, 0.25, 0));
-        }
 
         // 2. Belki Drewniane
         this.strutMeshes = [];
@@ -400,55 +366,36 @@ class ThreeApp {
         });
     }
 
-    onMouseDown(event) {
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObject(this.apexHandle);
-
-        if (intersects.length > 0) {
-            this.isDraggingApex = true;
-            this.controls.enabled = false; // Wyłącz obracanie kamery podczas przeciągania
-            this.dragStartY = event.clientY;
-            this.initialApexStretch = this.currentData ? (this.currentData.apexStretch || 1.0) : 1.0;
-        }
-    }
-
-    onMouseUp() {
-        if (this.isDraggingApex) {
-            this.isDraggingApex = false;
-            this.controls.enabled = true;
-        }
-    }
-
     onMouseMove(event) {
         const rect = this.renderer.domElement.getBoundingClientRect();
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        if (this.isDraggingApex) {
-            const deltaY = (this.dragStartY - event.clientY) * 0.005;
-            const newStretch = Math.max(0.5, Math.min(3.0, this.initialApexStretch + deltaY));
-            this.onApexStretchChange(newStretch);
-            return;
-        }
-
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects([this.apexHandle, ...this.nodeMeshes, ...this.strutMeshes]);
+        const intersects = this.raycaster.intersectObjects([...this.nodeMeshes, ...this.strutMeshes]);
 
         if (intersects.length > 0) {
             const hit = intersects[0].object;
-            if (hit === this.apexHandle) {
-                this.renderer.domElement.style.cursor = 'ns-resize';
-            } else {
+            if (this.hoveredMesh !== hit) {
+                if (this.hoveredMesh && this.hoveredMesh !== this.selectedMesh) {
+                    this.hoveredMesh.material.emissive?.setHex(0x000000);
+                }
+                this.hoveredMesh = hit;
+                if (hit !== this.selectedMesh) {
+                    hit.material.emissive?.setHex(0x333333);
+                }
                 this.renderer.domElement.style.cursor = 'pointer';
             }
         } else {
+            if (this.hoveredMesh && this.hoveredMesh !== this.selectedMesh) {
+                this.hoveredMesh.material.emissive?.setHex(0x000000);
+            }
+            this.hoveredMesh = null;
             this.renderer.domElement.style.cursor = 'default';
         }
     }
 
     onClick(event) {
-        if (this.isDraggingApex) return;
-
         this.raycaster.setFromCamera(this.mouse, this.camera);
         const intersects = this.raycaster.intersectObjects([...this.nodeMeshes, ...this.strutMeshes]);
 
