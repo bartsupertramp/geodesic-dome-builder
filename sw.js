@@ -1,23 +1,7 @@
-const CACHE_NAME = 'geodesic-4v-zome-v1';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './css/styles.css',
-  './js/geodesic_math.js',
-  './js/three_app.js',
-  './js/node_inspector.js',
-  './js/app.js',
-  './manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
-  'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'
-];
+// Service Worker - Network First z wymuszonym czyszczeniem pamięci podręcznej (Always Fresh Code)
+const CACHE_NAME = 'geodesic-zome-v20260824-fresh';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -26,9 +10,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+          return caches.delete(key);
         })
       );
     })
@@ -37,12 +19,14 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Network-first strategy: zawsze pobieraj najświeższy plik z serwera
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

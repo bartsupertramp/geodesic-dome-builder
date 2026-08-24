@@ -1,7 +1,8 @@
 /**
- * GeodesicMath - Precyzyjny silnik matematyczny geometrii 1V, 2V, 3V, 4V (Ikosaedr Class 1 Method 1)
- * Zorientowany w osi Y (Zenith = Y+), tworzący płaską podwalinę na poziomie Y=0,
- * z wyznaczaniem długości docięcia drewna, kątów zacięć bocznych, wariantów A1..F1 i typów węzłów W1..W7.
+ * GeodesicMath - Profesjonalny silnik matematyki sferycznej i rombowej:
+ * 1. Klasyczne Kopuły Geodezyjne (Ikosaedr 1V, 2V, 3V, 4V z płaską podwaliną Y=0)
+ * 2. Prawdziwe Kopuły ZOME (Zonoedralne Pasma Rombowe 8-Zome, 10-Zome, 12-Zome ze zdjęć architektonicznych)
+ * 3. Precyzyjne odliczenia rurowe PVC, zacięcia boczne, warianty A1..F1 oraz węzły W1..W7.
  */
 
 class GeodesicMath {
@@ -81,7 +82,7 @@ class GeodesicMath {
     }
 
     /**
-     * Generuje podział ikosaedru dla dowolnej częstotliwości NV (1V, 2V, 3V, 4V)
+     * Generuje siatkę geodezyjną ikosaedru (1V - 4V)
      */
     generateSphereNV(frequency = 4) {
         const freq = Math.max(1, Math.min(6, parseInt(frequency) || 4));
@@ -141,6 +142,80 @@ class GeodesicMath {
         return { vertices, faces, edges: Array.from(edgeSet.values()) };
     }
 
+    /**
+     * Generuje prawdziwą rombową geometrię ZOME (ze zdjęcia architektonicznego CAD media_1787566639543.jpg)
+     */
+    generateTrueZomeMesh(nPolar = 12, nTiers = 4) {
+        const vertices = [];
+        const vertMap = new Map();
+
+        const getVertId = (pos) => {
+            const key = `${pos[0].toFixed(5)},${pos[1].toFixed(5)},${pos[2].toFixed(5)}`;
+            if (!vertMap.has(key)) {
+                vertMap.set(key, vertices.length);
+                vertices.push(pos);
+            }
+            return vertMap.get(key);
+        };
+
+        const vTop = getVertId([0.0, 1.0, 0.0]);
+
+        const ringNodes = [];
+        ringNodes.push(Array(nPolar).fill(vTop));
+
+        for (let tier = 1; tier <= nTiers + 1; tier++) {
+            const t = tier / parseFloat(nTiers + 1);
+            const r_k = Math.sin(t * Math.PI * 0.88);
+            const y_k = Math.cos(t * Math.PI * 0.5);
+            const phase = (tier % 2) * (Math.PI / parseFloat(nPolar));
+
+            const currentRing = [];
+            for (let i = 0; i < nPolar; i++) {
+                const angle = i * (2.0 * Math.PI / parseFloat(nPolar)) + phase;
+                const x = r_k * Math.cos(angle);
+                const z = r_k * Math.sin(angle);
+                currentRing.append ? currentRing.push(getVertId([x, y_k, z])) : currentRing.push(getVertId([x, y_k, z]));
+            }
+            ringNodes.push(currentRing);
+        }
+
+        const edgeSet = new Map();
+        const faces = [];
+
+        // Korona szczytowa
+        const topRing = ringNodes[1];
+        for (let i = 0; i < nPolar; i++) {
+            const v1 = vTop;
+            const v2 = topRing[i];
+            const v3 = topRing[(i + 1) % nPolar];
+            this.addEdge(edgeSet, v1, v2);
+            this.addEdge(edgeSet, v2, v3);
+            faces.push([v1, v2, v3]);
+        }
+
+        // Pasma rombowe Zome (Tier 1 do N)
+        for (let tier = 1; tier <= nTiers; tier++) {
+            const rCurr = ringNodes[tier];
+            const rNext = ringNodes[tier + 1];
+
+            for (let i = 0; i < nPolar; i++) {
+                const vA = rCurr[i];
+                const vB = rCurr[(i + 1) % nPolar];
+                const vC = rNext[i];
+                const vD = rNext[(i + 1) % nPolar];
+
+                this.addEdge(edgeSet, vA, vC);
+                this.addEdge(edgeSet, vB, vD);
+                this.addEdge(edgeSet, vC, vD);
+
+                faces.push([vA, vB, vD]);
+                faces.push([vA, vD, vC]);
+            }
+        }
+
+        return { vertices, faces, edges: Array.from(edgeSet.values()) };
+    }
+
     addEdge(edgeMap, v1, v2) {
         const key = v1 < v2 ? `${v1}-${v2}` : `${v2}-${v1}`;
         if (!edgeMap.has(key)) {
@@ -156,8 +231,15 @@ class GeodesicMath {
         const timberH = (params.timberH || 45) / 1000.0;
         const truncation = params.truncation || 0.5;
         const frequency = parseInt(params.frequency) || 4;
+        const geometryType = params.geometryType || 'GEODESIC';
+        const zomeOrder = parseInt(params.zomeOrder) || 12;
 
-        const sphere = this.generateSphereNV(frequency);
+        let sphere = null;
+        if (geometryType === 'ZOME') {
+            sphere = this.generateTrueZomeMesh(zomeOrder, 4);
+        } else {
+            sphere = this.generateSphereNV(frequency);
+        }
 
         let minY = -0.001;
         if (truncation === 0.375) minY = 0.276;
@@ -184,7 +266,7 @@ class GeodesicMath {
                 unitPos: v,
                 neighbors: [],
                 connectedEdges: [],
-                type: isBase ? 'BASE' : 'HEXAGON',
+                type: isBase ? 'BASE' : (v[1] > 0.98 ? 'PENTAGON' : 'HEXAGON'),
                 pitchAngleDeg: 0,
                 isBase: isBase
             };
@@ -223,7 +305,7 @@ class GeodesicMath {
         });
 
         const sortedGroups = Array.from(lengthGroups.values()).sort((a, b) => a.factor - b.factor);
-        const typeLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        const typeLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
         sortedGroups.forEach((group, idx) => {
             group.type = typeLabels[idx] || `S${idx}`;
@@ -274,7 +356,7 @@ class GeodesicMath {
 
             if (node.isBase) {
                 node.type = 'BASE';
-            } else if (valency === 5) {
+            } else if (valency === 5 || valency === zomeOrder) {
                 node.type = 'PENTAGON';
             } else {
                 node.type = 'HEXAGON';
@@ -343,9 +425,9 @@ class GeodesicMath {
 
             let desc = '';
             if (nt.baseType === 'PENTAGON') {
-                desc = `Pentagon (${nt.valency} ramion: ${nt.strutPattern})`;
+                desc = `Węzeł Szczytowy (${nt.valency} ramion: ${nt.strutPattern})`;
             } else if (nt.baseType === 'HEXAGON') {
-                desc = `Heksagon (${nt.valency} ramion: ${nt.strutPattern})`;
+                desc = `Węzeł Wewnętrzny (${nt.valency} ramion: ${nt.strutPattern})`;
             } else {
                 desc = `Węzeł Podstawy (${nt.valency} ramiona: ${nt.strutPattern})`;
             }
@@ -369,7 +451,7 @@ class GeodesicMath {
             };
         });
 
-        // Kąty zacięć bocznych wokół rury PVC
+        // Kąty zacięć bocznych
         const nodeDetails = {};
 
         domeVertices.forEach(node => {
@@ -534,6 +616,8 @@ class GeodesicMath {
             timberWMm: params.timberW,
             timberHMm: params.timberH,
             frequency,
+            geometryType,
+            zomeOrder,
             vertices: domeVertices,
             edges: domeEdges,
             faces: domeFaces,

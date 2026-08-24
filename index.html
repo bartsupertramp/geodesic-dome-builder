@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator i Wizualizator 3D Kopuły Geodezyjnej 1V-4V | Węzły Rurowe PVC</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>4V Geodesic & True Zome Builder 3D | Kalkulator dla Stolarni i Google Play</title>
+    <link rel="stylesheet" href="css/styles.css?v=20260824_v2">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00d1b2">
     <!-- CDN Three.js i OrbitControls -->
@@ -17,7 +20,7 @@
     <header>
         <div class="logo-container">
             <span class="logo-icon">🌐</span>
-            <h1>4V Geodesic Dome Builder <span class="badge-4v">SYSTEM RUROWY PVC</span></h1>
+            <h1>4V Geodesic & True Zome Builder <span class="badge-4v">SYSTEM RUROWY PVC & CAD ZOME</span></h1>
         </div>
         <div class="header-actions">
             <button id="btn-export-csv" class="btn btn-secondary">📥 Pobierz CSV</button>
@@ -30,16 +33,35 @@
 
         <!-- Panel Lewy: Parametry Projektu -->
         <aside class="panel panel-left">
-            <div class="panel-title">📐 Parametry Geometrii Geodezyjnej</div>
+            <div class="panel-title">📐 Typ Konstrukcji & Geometria</div>
+
+            <!-- Typ Architektury -->
+            <div class="input-group">
+                <label for="select-geometry-type">Typ Geometrii:</label>
+                <select id="select-geometry-type">
+                    <option value="GEODESIC" selected>Klasyczna Kopuła Geodezyjna (Ikosaedr 1V-4V)</option>
+                    <option value="ZOME">Prawdziwa Kopuła ZOME (Pasma Rombowe ze zdjęcia CAD)</option>
+                </select>
+            </div>
 
             <!-- Częstotliwości 1V, 2V, 3V, 4V -->
-            <div class="input-group">
-                <label for="select-frequency">Częstotliwość Siatki Geodezyjnej:</label>
+            <div class="input-group" id="group-freq-options">
+                <label for="select-frequency">Częstotliwość Geodezyjna:</label>
                 <select id="select-frequency">
-                    <option value="1">1V (10 belek, prosta)</option>
+                    <option value="1">1V (10 belek, prosta czasza)</option>
                     <option value="2">2V (65 belek, 2 typy)</option>
                     <option value="3">3V (120 belek, 3 typy)</option>
                     <option value="4" selected>4V (250 belek, domyślna)</option>
+                </select>
+            </div>
+
+            <!-- Opcje Zome (8-Zome, 10-Zome, 12-Zome z rysunku CAD) -->
+            <div class="input-group" id="group-zome-options" style="display:none;">
+                <label for="select-zome-order">Symetria Zome (z rysunku CAD):</label>
+                <select id="select-zome-order">
+                    <option value="8">8-Zome (Rombowa 8-polarna)</option>
+                    <option value="10">10-Zome (Rombowa 10-polarna)</option>
+                    <option value="12" selected>12-Zome (Rombowa 12-polarna ze zdjęcia CAD)</option>
                 </select>
             </div>
 
@@ -76,14 +98,14 @@
 
             <!-- Legenda Kolorów Belek -->
             <div style="margin-top: 10px; background: #10161f; padding: 10px; border-radius: 6px; border: 1px solid var(--panel-border);">
-                <span style="font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase;">Legenda Belek:</span>
+                <span style="font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase;">Legenda Belek / Pasma Zome:</span>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; font-size: 11px;">
-                    <div><span class="strut-tag" style="background-color:#FF4136">A</span> Belka A</div>
-                    <div><span class="strut-tag" style="background-color:#0074D9">B</span> Belka B</div>
-                    <div><span class="strut-tag" style="background-color:#2ECC40">C</span> Belka C</div>
-                    <div><span class="strut-tag" style="background-color:#FFDC00; color:#000">D</span> Belka D</div>
-                    <div><span class="strut-tag" style="background-color:#B10DC9">E</span> Belka E</div>
-                    <div><span class="strut-tag" style="background-color:#FF851B">F</span> Belka F</div>
+                    <div><span class="strut-tag" style="background-color:#FF4136">A / Tier0</span> Belka A</div>
+                    <div><span class="strut-tag" style="background-color:#0074D9">B / Tier1</span> Belka B</div>
+                    <div><span class="strut-tag" style="background-color:#2ECC40">C / Tier2</span> Belka C</div>
+                    <div><span class="strut-tag" style="background-color:#FFDC00; color:#000">D / Tier3</span> Belka D</div>
+                    <div><span class="strut-tag" style="background-color:#B10DC9">E / Tier4</span> Belka E</div>
+                    <div><span class="strut-tag" style="background-color:#FF851B">F / Tier5</span> Belka F</div>
                 </div>
             </div>
 
@@ -98,7 +120,7 @@
                 <div style="display:flex; align-items:center; gap:6px;">
                     <label for="select-display-mode">Widok 3D:</label>
                     <select id="select-display-mode" style="padding: 4px 8px; font-size: 12px;">
-                        <option value="STRUT_TYPES" selected>Kolory Belek</option>
+                        <option value="STRUT_TYPES" selected>Kolory Belek / Pasma Zome</option>
                         <option value="PITCH_HEATMAP">Mapa Wypukłości Węzłów</option>
                         <option value="WOOD">Naturalne Drewno</option>
                         <option value="FACES">Z Poszyciem Trójkątnym</option>
@@ -161,10 +183,10 @@
         </div>
     </div>
 
-    <!-- Skrypty Aplikacji -->
-    <script src="js/geodesic_math.js"></script>
-    <script src="js/three_app.js"></script>
-    <script src="js/node_inspector.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Skrypty Aplikacji z Cache-Bustingiem -->
+    <script src="js/geodesic_math.js?v=20260824_v2"></script>
+    <script src="js/three_app.js?v=20260824_v2"></script>
+    <script src="js/node_inspector.js?v=20260824_v2"></script>
+    <script src="js/app.js?v=20260824_v2"></script>
 </body>
 </html>

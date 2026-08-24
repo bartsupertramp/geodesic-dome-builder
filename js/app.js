@@ -1,7 +1,6 @@
 /**
- * App - Główny kontroler aplikacji Geodesic Dome Builder
- * z obsługą częstotliwości 1V-4V, wariantów A1..F1, węzłów W1..W7
- * oraz rejestracją Service Workera pod PWA / Google Play.
+ * App - Główny kontroler aplikacji Geodesic & Zome Builder
+ * z obsługą czystej siatki geodezyjnej (1V-4V) oraz Prawdziwej Geometrii ZOME (pasma rombowe ze zdjęcia CAD).
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputTimberH = document.getElementById('input-timber-h');
     
     const selectFrequency = document.getElementById('select-frequency');
+    const selectGeometryType = document.getElementById('select-geometry-type');
+    const selectZomeOrder = document.getElementById('select-zome-order');
     const selectTrunc = document.getElementById('select-truncation');
     const selectMode = document.getElementById('select-display-mode');
 
@@ -42,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExportCSV = document.getElementById('btn-export-csv');
     const btnPrint = document.getElementById('btn-print');
 
+    const groupZomeOptions = document.getElementById('group-zome-options');
+    const groupFreqOptions = document.getElementById('group-freq-options');
+
     function getParamsFromUI() {
         return {
             radius: parseFloat(inputRadius.value) || 3.0,
@@ -49,11 +53,20 @@ document.addEventListener('DOMContentLoaded', () => {
             timberW: parseFloat(inputTimberW.value) || 45.0,
             timberH: parseFloat(inputTimberH.value) || 45.0,
             frequency: parseInt(selectFrequency ? selectFrequency.value : 4) || 4,
+            geometryType: selectGeometryType ? selectGeometryType.value : 'GEODESIC',
+            zomeOrder: parseInt(selectZomeOrder ? selectZomeOrder.value : 12) || 12,
             truncation: parseFloat(selectTrunc.value) || 0.5
         };
     }
 
+    function toggleGeometryUI() {
+        const isZome = selectGeometryType && selectGeometryType.value === 'ZOME';
+        if (groupZomeOptions) groupZomeOptions.style.display = isZome ? 'flex' : 'none';
+        if (groupFreqOptions) groupFreqOptions.style.display = isZome ? 'none' : 'flex';
+    }
+
     function updateApp() {
+        toggleGeometryUI();
         const params = getParamsFromUI();
         currentDomeData = geoMath.calculateDome(params);
 
@@ -205,14 +218,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let csvContent = "data:text/csv;charset=utf-8,";
         
-        csvContent += `=== DOKLADNA LISTA CIEC BELEK (CZIESTOTLIWOSC: ${currentDomeData.frequency}V) ===\n`;
+        csvContent += `=== DOKLADNA LISTA CIEC BELEK (GEOMETRIA: ${currentDomeData.geometryType}) ===\n`;
         csvContent += "Kod Wariantu;Typ Glowny;Nazwa;Dlugosc Srodkowa (mm);Dlugosc Dociecia (mm);Zacicie Lewe (deg);Zaciecie Prawe (deg);Ilosc Sztuk;Suma Metrow (m)\n";
 
         Object.values(currentDomeData.summaryByStrutVariant).forEach(v => {
             csvContent += `${v.variantCode};${v.baseType};${v.name};${v.centerLenMm};${v.cutLenMm};${v.miterLeftDeg};${v.miterRightDeg};${v.count};${v.totalMeterage}\n`;
         });
 
-        csvContent += "\n=== ZESTAWIENIE RODZAJOW WEZLOW (NODE TYPES W1-W7) ===\n";
+        csvContent += "\n=== ZESTAWIENIE RODZAJOW WEZLOW (NODE TYPES) ===\n";
         csvContent += "Kod Wezla;Opis Rodzaju;Uklad Belek;Liczba Ramion;Ilosc Sztuk w Konstrukcji\n";
 
         Object.values(currentDomeData.summaryByNodeType).forEach(nt => {
@@ -222,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `plan_kopuly_${currentDomeData.frequency}V_R${currentDomeData.radius}m.csv`);
+        link.setAttribute("download", `plan_kopuly_${currentDomeData.geometryType}_R${currentDomeData.radius}m.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -233,7 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
         threeApp.setDisplayMode(selectMode.value);
     });
 
+    if (selectGeometryType) selectGeometryType.addEventListener('change', updateApp);
     if (selectFrequency) selectFrequency.addEventListener('change', updateApp);
+    if (selectZomeOrder) selectZomeOrder.addEventListener('change', updateApp);
 
     if (chkShowNodeLabels) {
         chkShowNodeLabels.addEventListener('change', () => {
@@ -267,8 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPrint) btnPrint.addEventListener('click', () => window.print());
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').then(() => {
-            console.log('Service Worker zarejestrowany pomyślnie pod PWA / Google Play.');
+        navigator.serviceWorker.register('./sw.js?v=20260824').then(() => {
+            console.log('Service Worker zarejestrowany pomyślnie.');
         }).catch(err => {
             console.log('Błąd rejestracji Service Workera:', err);
         });
