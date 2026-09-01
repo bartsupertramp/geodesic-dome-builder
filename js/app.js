@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputTimberH = document.getElementById('input-timber-h');
     
     const selectFrequency = document.getElementById('select-frequency');
-    const selectStrutAlignment = document.getElementById('select-strut-alignment');
     const selectDrillingMode = document.getElementById('select-drilling-mode');
     const selectTrunc = document.getElementById('select-truncation');
     const selectMode = document.getElementById('select-display-mode');
@@ -60,9 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
             inspector.setDrillingMode(selectDrillingMode.value);
         }
 
-        if (selectStrutAlignment) {
-            threeApp.setStrutAlignment(selectStrutAlignment.value);
-        }
+        // Zawsze używaj domyślnej orientacji PANEL_FLUSH pod poszycie płytami OSB/sklejką
+        threeApp.setStrutAlignment('PANEL_FLUSH');
 
         const params = getParamsFromUI();
         currentDomeData = geoMath.calculateDome(params);
@@ -244,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (selectFrequency) selectFrequency.addEventListener('change', updateApp);
-    if (selectStrutAlignment) selectStrutAlignment.addEventListener('change', updateApp);
 
     if (selectDrillingMode) {
         selectDrillingMode.addEventListener('change', () => {
@@ -284,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPrint) btnPrint.addEventListener('click', () => window.print());
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20260901_v4').then(() => {
+        navigator.serviceWorker.register('./sw.js?v=20260901_v5').then(() => {
             console.log('Service Worker zarejestrowany pomyślnie.');
         }).catch(err => {
             console.log('Błąd rejestracji Service Workera:', err);

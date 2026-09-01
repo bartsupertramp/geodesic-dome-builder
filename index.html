@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Kalkulator i Wizualizator 3D Kopuły Geodezyjnej 1V-4V | Węzły Rurowe PVC & Płyty Poszycia</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260901_v4">
+    <link rel="stylesheet" href="css/styles.css?v=20260901_v5">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00d1b2">
     <!-- CDN Three.js i OrbitControls -->
@@ -20,7 +20,7 @@
     <header>
         <div class="logo-container">
             <span class="logo-icon">🌐</span>
-            <h1>4V Geodesic Dome Builder <span class="badge-4v">SYSTEM RUROWY PVC & PANELS</span></h1>
+            <h1>4V Geodesic Dome Builder <span class="badge-4v">SYSTEM RUROWY PVC</span></h1>
         </div>
         <div class="header-actions">
             <button id="btn-export-csv" class="btn btn-secondary">📥 Pobierz CSV</button>
@@ -42,15 +42,6 @@
                     <option value="2">2V (65 belek, 2 typy)</option>
                     <option value="3">3V (120 belek, 3 typy)</option>
                     <option value="4" selected>4V (250 belek, domyślna)</option>
-                </select>
-            </div>
-
-            <!-- Orientacja Belek pod Płyty Poszycia -->
-            <div class="input-group">
-                <label for="select-strut-alignment">Orientacja Belek (Płaszczyzna Poszycia):</label>
-                <select id="select-strut-alignment">
-                    <option value="PANEL_FLUSH" selected>Płasko pod Płyty Poszycia (Panel-Flush)</option>
-                    <option value="RADIAL">Promienista (Radial ze środka)</option>
                 </select>
             </div>
 
@@ -108,7 +99,7 @@
             </div>
 
             <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-                <p>💡 <strong>Poszycie Płytami:</strong> Belek użyto w trybie Panel-Flush, dzięki czemu zewnętrza płaszczyzna każdej belki leży idealnie płasko z trójkątem poszycia (OSB/sklejka).</p>
+                <p>💡 <strong>Poszycie Płytami:</strong> Belek użyto w płaskim układzie ramy, dzięki czemu zewnętrzna płaszczyzna każdej belki leży idealnie płasko z trójkątem poszycia (OSB/sklejka).</p>
             </div>
         </aside>
 
@@ -188,9 +179,9 @@
     </div>
 
     <!-- Skrypty Aplikacji z Cache-Bustingiem -->
-    <script src="js/geodesic_math.js?v=20260901_v4"></script>
-    <script src="js/three_app.js?v=20260901_v4"></script>
-    <script src="js/node_inspector.js?v=20260901_v4"></script>
-    <script src="js/app.js?v=20260901_v4"></script>
+    <script src="js/geodesic_math.js?v=20260901_v5"></script>
+    <script src="js/three_app.js?v=20260901_v5"></script>
+    <script src="js/node_inspector.js?v=20260901_v5"></script>
+    <script src="js/app.js?v=20260901_v5"></script>
 </body>
 </html>
