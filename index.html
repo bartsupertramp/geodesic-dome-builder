@@ -6,8 +6,8 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Kalkulator i Wizualizator 3D Kopuły Geodezyjnej 1V-4V | Węzły Rurowe PVC & Przeglądarka 3D Węzła</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260831_v3">
+    <title>Kalkulator i Wizualizator 3D Kopuły Geodezyjnej 1V-4V | Węzły Rurowe PVC & Płyty Poszycia</title>
+    <link rel="stylesheet" href="css/styles.css?v=20260901_v4">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00d1b2">
     <!-- CDN Three.js i OrbitControls -->
@@ -20,7 +20,7 @@
     <header>
         <div class="logo-container">
             <span class="logo-icon">🌐</span>
-            <h1>4V Geodesic Dome Builder <span class="badge-4v">SYSTEM RUROWY PVC</span></h1>
+            <h1>4V Geodesic Dome Builder <span class="badge-4v">SYSTEM RUROWY PVC & PANELS</span></h1>
         </div>
         <div class="header-actions">
             <button id="btn-export-csv" class="btn btn-secondary">📥 Pobierz CSV</button>
@@ -38,10 +38,19 @@
             <div class="input-group">
                 <label for="select-frequency">Częstotliwość Geodezyjna:</label>
                 <select id="select-frequency">
-                    <option value="1">1V (10 belek, prosta časza)</option>
+                    <option value="1">1V (10 belek, prosta czasza)</option>
                     <option value="2">2V (65 belek, 2 typy)</option>
                     <option value="3">3V (120 belek, 3 typy)</option>
                     <option value="4" selected>4V (250 belek, domyślna)</option>
+                </select>
+            </div>
+
+            <!-- Orientacja Belek pod Płyty Poszycia -->
+            <div class="input-group">
+                <label for="select-strut-alignment">Orientacja Belek (Płaszczyzna Poszycia):</label>
+                <select id="select-strut-alignment">
+                    <option value="PANEL_FLUSH" selected>Płasko pod Płyty Poszycia (Panel-Flush)</option>
+                    <option value="RADIAL">Promienista (Radial ze środka)</option>
                 </select>
             </div>
 
@@ -99,7 +108,7 @@
             </div>
 
             <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-                <p>💡 <strong>Wskazówka:</strong> Kliknij dowolny węzeł na modelu, aby otworzyć trójwymiarową przeglądarkę łącznika 3D w prawym panelu.</p>
+                <p>💡 <strong>Poszycie Płytami:</strong> Belek użyto w trybie Panel-Flush, dzięki czemu zewnętrza płaszczyzna każdej belki leży idealnie płasko z trójkątem poszycia (OSB/sklejka).</p>
             </div>
         </aside>
 
@@ -135,7 +144,7 @@
             <div id="canvas-3d-container"></div>
         </main>
 
-        <!-- Panel Prawy: Inspektor Wybranego Węzła (z Mini-Przeglądarką 3D) -->
+        <!-- Panel Prawy: Inspektor Wybranego Węzła -->
         <aside class="panel panel-right">
             <div class="panel-title">🔍 Inspektor Wybranego Węzła</div>
 
@@ -179,9 +188,9 @@
     </div>
 
     <!-- Skrypty Aplikacji z Cache-Bustingiem -->
-    <script src="js/geodesic_math.js?v=20260831_v3"></script>
-    <script src="js/three_app.js?v=20260831_v3"></script>
-    <script src="js/node_inspector.js?v=20260831_v3"></script>
-    <script src="js/app.js?v=20260831_v3"></script>
+    <script src="js/geodesic_math.js?v=20260901_v4"></script>
+    <script src="js/three_app.js?v=20260901_v4"></script>
+    <script src="js/node_inspector.js?v=20260901_v4"></script>
+    <script src="js/app.js?v=20260901_v4"></script>
 </body>
 </html>

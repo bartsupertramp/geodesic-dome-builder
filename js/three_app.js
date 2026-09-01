@@ -1,6 +1,6 @@
 /**
  * ThreeApp - Silnik wizualizacji 3D Three.js dla kopuł geodezyjnych 1V-4V
- * ze zmniejszonymi etykietami 3D, numeracją belek A1, B1... i podświetlaniem.
+ * z obsługą orientacji belek idealnie na płasko do paneli poszycia (Panel-Flush Alignment).
  */
 
 class ThreeApp {
@@ -15,6 +15,7 @@ class ThreeApp {
         this.onStrutSelect = options.onStrutSelect || (() => {});
 
         this.displayMode = 'STRUT_TYPES';
+        this.strutAlignment = 'PANEL_FLUSH'; // 'PANEL_FLUSH' (Płasko pod płyty poszycia) lub 'RADIAL' (Promieniste)
         this.showNodeLabels = true;
         this.showStrutLabels = true;
         this.labelType = 'CODE';
@@ -99,6 +100,13 @@ class ThreeApp {
 
     setDisplayMode(mode) {
         this.displayMode = mode;
+        if (this.currentData) {
+            this.buildDome3D(this.currentData);
+        }
+    }
+
+    setStrutAlignment(alignment) {
+        this.strutAlignment = alignment;
         if (this.currentData) {
             this.buildDome3D(this.currentData);
         }
@@ -261,7 +269,25 @@ class ThreeApp {
             this.nodeLabelGroup.add(sprite);
         });
 
-        // 2. Belki Drewniane
+        // Mapowanie normalnych ścian przyległych dla pozycjonowania belek płasko pod płyty
+        const edgeNormals = new Map();
+        domeData.faces.forEach(face => {
+            const norm = new THREE.Vector3(...face.normal);
+            const pairs = [
+                [face.verts[0], face.verts[1]],
+                [face.verts[1], face.verts[2]],
+                [face.verts[2], face.verts[0]]
+            ];
+            pairs.forEach(pair => {
+                const key = pair[0] < pair[1] ? `${pair[0]}-${pair[1]}` : `${pair[1]}-${pair[0]}`;
+                if (!edgeNormals.has(key)) {
+                    edgeNormals.set(key, []);
+                }
+                edgeNormals.get(key).push(norm);
+            });
+        });
+
+        // 2. Belki Drewniane z Orientacją Płasko pod Płyty Poszycia (Panel-Flush Alignment)
         this.strutMeshes = [];
 
         domeData.edges.forEach(edge => {
@@ -297,8 +323,26 @@ class ThreeApp {
             const strutMesh = new THREE.Mesh(strutGeo, strutMat);
             strutMesh.position.copy(midPoint);
 
+            // Wyznacz wektor góra (UpVector) dla belki:
+            // W trybie PANEL_FLUSH szeroka zewnętrzna płaszczyzna deski leży idealnie płasko z płaszczyzną trójkąta (Face Normal)
+            let upVec = new THREE.Vector3(0, 1, 0);
+            
+            const key = edge.v1 < edge.v2 ? `${edge.v1}-${edge.v2}` : `${edge.v2}-${edge.v1}`;
+            const norms = edgeNormals.get(key);
+
+            if (this.strutAlignment === 'PANEL_FLUSH' && norms && norms.length > 0) {
+                // Średnia wektorów normalnych przyległych ścian trójkątnych
+                const avgNorm = new THREE.Vector3();
+                norms.forEach(n => avgNorm.add(n));
+                avgNorm.normalize();
+                upVec.copy(avgNorm);
+            } else {
+                // Orientacja promienista ze środka kuli
+                upVec.copy(midPoint).normalize();
+            }
+
             const mat = new THREE.Matrix4();
-            mat.lookAt(v1Pos, v2Pos, new THREE.Vector3(0, 1, 0));
+            mat.lookAt(v1Pos, v2Pos, upVec);
             strutMesh.quaternion.setFromRotationMatrix(mat);
 
             strutMesh.castShadow = true;
@@ -310,7 +354,7 @@ class ThreeApp {
 
             const variantText = edge.variantCode || edge.strutType;
             const strutSprite = this.createBadgeSprite(variantText, strutColor, 34);
-            const labelPos = midPoint.clone().add(new THREE.Vector3(0, 0.03, 0));
+            const labelPos = midPoint.clone().add(upVec.clone().multiplyScalar(0.04));
             strutSprite.position.copy(labelPos);
             this.strutLabelGroup.add(strutSprite);
         });

@@ -1,12 +1,12 @@
 /**
  * App - Główny kontroler aplikacji Geodesic Dome Builder & Node Visualizer
- * Zintegrowany z Trójwymiarową Mini-Przeglądarką 3D Węzła (3D Node Inspector).
+ * Zintegrowany z Orientacją Belek pod Płyty Poszycia (Panel-Flush Alignment)
+ * oraz Trójwymiarową Przeglądarką 3D Węzła (3D Node Inspector).
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     const geoMath = new GeodesicMath();
     
-    // Inspektor 2D oraz Przeglądarka 3D Węzła
     const inspector = new NodeInspector('canvas-2d', 'canvas-profile', 'node-detail-content', 'canvas-3d-node-container');
 
     const threeApp = new ThreeApp('canvas-3d-container', {
@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputTimberH = document.getElementById('input-timber-h');
     
     const selectFrequency = document.getElementById('select-frequency');
+    const selectStrutAlignment = document.getElementById('select-strut-alignment');
     const selectDrillingMode = document.getElementById('select-drilling-mode');
     const selectTrunc = document.getElementById('select-truncation');
     const selectMode = document.getElementById('select-display-mode');
@@ -57,6 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateApp() {
         if (selectDrillingMode) {
             inspector.setDrillingMode(selectDrillingMode.value);
+        }
+
+        if (selectStrutAlignment) {
+            threeApp.setStrutAlignment(selectStrutAlignment.value);
         }
 
         const params = getParamsFromUI();
@@ -239,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (selectFrequency) selectFrequency.addEventListener('change', updateApp);
+    if (selectStrutAlignment) selectStrutAlignment.addEventListener('change', updateApp);
 
     if (selectDrillingMode) {
         selectDrillingMode.addEventListener('change', () => {
@@ -278,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPrint) btnPrint.addEventListener('click', () => window.print());
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=20260831_v3').then(() => {
+        navigator.serviceWorker.register('./sw.js?v=20260901_v4').then(() => {
             console.log('Service Worker zarejestrowany pomyślnie.');
         }).catch(err => {
             console.log('Błąd rejestracji Service Workera:', err);
