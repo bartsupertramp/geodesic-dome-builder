@@ -266,6 +266,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const chkMiterCuts = document.getElementById('chk-miter-cuts');
+    if (chkMiterCuts) {
+        chkMiterCuts.addEventListener('change', () => {
+            threeApp.setMiterCuts(chkMiterCuts.checked);
+        });
+    }
+
     if (inputLabelScale) {
         inputLabelScale.addEventListener('input', () => {
             threeApp.setLabelScale(parseFloat(inputLabelScale.value) || 0.5);

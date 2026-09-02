@@ -20,6 +20,7 @@ class ThreeApp {
         this.showStrutLabels = true;
         this.labelType = 'CODE';
         this.labelScale = 0.5;
+        this.enableMiterCuts = true;
         
         this.selectedNodeId = null;
         this.selectedEdgeId = null;
@@ -134,6 +135,13 @@ class ThreeApp {
         this.updateLabelScales();
     }
 
+    setMiterCuts(enabled) {
+        this.enableMiterCuts = enabled;
+        if (this.currentData) {
+            this.buildDome3D(this.currentData);
+        }
+    }
+
     updateLabelScales() {
         const nodeBaseW = 0.14 * this.labelScale;
         const nodeBaseH = 0.07 * this.labelScale;
@@ -185,6 +193,88 @@ class ThreeApp {
 
         const sprite = new THREE.Sprite(spriteMat);
         return sprite;
+    }
+
+    /**
+     * Generuje precyzyjną geometrię belki drewnianej z zacięciami kątowymi pod ukośnicę (Miter Cuts)
+     * oraz dopasowaniem do cylindra rury stalowej i kąta wypukłości czaszy (Pitch Angle).
+     */
+    createMiteredStrutGeometry(timberW, timberH, fullLen, pipeRadius, v1Detail, v2Detail, edgeId) {
+        const halfW = timberW / 2;
+        const halfH = timberH / 2;
+        const halfL = fullLen / 2;
+
+        const s1 = v1Detail?.struts?.find(s => s.edgeId === edgeId);
+        const s2 = v2Detail?.struts?.find(s => s.edgeId === edgeId);
+
+        const deltaL1 = ((s1?.deltaLeftDeg || 72) * Math.PI) / 180;
+        const deltaR1 = ((s1?.deltaRightDeg || 72) * Math.PI) / 180;
+        const pitch1 = ((v1Detail?.pitchAngleDeg || 7.27) * Math.PI) / 180;
+
+        const deltaL2 = ((s2?.deltaLeftDeg || 72) * Math.PI) / 180;
+        const deltaR2 = ((s2?.deltaRightDeg || 72) * Math.PI) / 180;
+        const pitch2 = ((v2Detail?.pitchAngleDeg || 7.27) * Math.PI) / 180;
+
+        function calcZ1(x, y) {
+            const delta = x < 0 ? deltaL1 : deltaR1;
+            const miterSetback = Math.abs(x) * Math.tan(delta / 2);
+            const cylSetback = pipeRadius - Math.sqrt(Math.max(0, pipeRadius * pipeRadius - x * x));
+            const setback = Math.max(miterSetback, cylSetback) + y * Math.sin(pitch1);
+            return -halfL + pipeRadius + setback;
+        }
+
+        function calcZ2(x, y) {
+            const delta = x > 0 ? deltaL2 : deltaR2;
+            const miterSetback = Math.abs(x) * Math.tan(delta / 2);
+            const cylSetback = pipeRadius - Math.sqrt(Math.max(0, pipeRadius * pipeRadius - x * x));
+            const setback = Math.max(miterSetback, cylSetback) + y * Math.sin(pitch2);
+            return halfL - pipeRadius - setback;
+        }
+
+        // 12 wierzchołków
+        const positions = [
+            // End 1 (v1, -Z):
+            -halfW,  halfH, calcZ1(-halfW,  halfH), // 0: -X, +Y
+                 0,  halfH, calcZ1(     0,  halfH), // 1:  0, +Y
+             halfW,  halfH, calcZ1( halfW,  halfH), // 2: +X, +Y
+            -halfW, -halfH, calcZ1(-halfW, -halfH), // 3: -X, -Y
+                 0, -halfH, calcZ1(     0, -halfH), // 4:  0, -Y
+             halfW, -halfH, calcZ1( halfW, -halfH), // 5: +X, -Y
+
+            // End 2 (v2, +Z):
+            -halfW,  halfH, calcZ2(-halfW,  halfH), // 6: -X, +Y
+                 0,  halfH, calcZ2(     0,  halfH), // 7:  0, +Y
+             halfW,  halfH, calcZ2( halfW,  halfH), // 8: +X, +Y
+            -halfW, -halfH, calcZ2(-halfW, -halfH), // 9: -X, -Y
+                 0, -halfH, calcZ2(     0, -halfH), // 10: 0, -Y
+             halfW, -halfH, calcZ2( halfW, -halfH)  // 11: +X, -Y
+        ];
+
+        // 20 trójkątów z zachowaniem orientacji CCW (na zewnątrz)
+        const indices = [
+            // Top (+Y):
+            0, 6, 7,   0, 7, 1,
+            1, 7, 8,   1, 8, 2,
+            // Bottom (-Y):
+            3, 4, 10,  3, 10, 9,
+            4, 5, 11,  4, 11, 10,
+            // -X Side Face:
+            0, 3, 9,   0, 9, 6,
+            // +X Side Face:
+            2, 8, 11,  2, 11, 5,
+            // End 1 (-Z):
+            0, 1, 4,   0, 4, 3,
+            1, 2, 5,   1, 5, 4,
+            // End 2 (+Z):
+            7, 6, 9,   7, 9, 10,
+            8, 7, 10,  8, 10, 11
+        ];
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geo.setIndex(indices);
+        geo.computeVertexNormals();
+        return geo;
     }
 
     buildDome3D(domeData) {
@@ -333,7 +423,20 @@ class ThreeApp {
             const actualCutLen = Math.max(0.05, fullLen - 2 * pipeRadius);
             const midPoint = new THREE.Vector3().addVectors(v1Pos, v2Pos).multiplyScalar(0.5);
 
-            const strutGeo = new THREE.BoxGeometry(timberW, timberH, actualCutLen);
+            let strutGeo;
+            if (this.enableMiterCuts && domeData.nodeDetails) {
+                strutGeo = this.createMiteredStrutGeometry(
+                    timberW,
+                    timberH,
+                    fullLen,
+                    pipeRadius,
+                    domeData.nodeDetails[edge.v1],
+                    domeData.nodeDetails[edge.v2],
+                    edge.id
+                );
+            } else {
+                strutGeo = new THREE.BoxGeometry(timberW, timberH, actualCutLen);
+            }
 
             let strutColor = edge.color || '#FF4136';
             
@@ -373,9 +476,14 @@ class ThreeApp {
                 upVec.copy(midPoint).normalize();
             }
 
-            const mat = new THREE.Matrix4();
-            mat.lookAt(v1Pos, v2Pos, upVec);
-            strutMesh.quaternion.setFromRotationMatrix(mat);
+            // Konstrukcja precyzyjnej bazy ortonormalnej (X, Y, Z) dla belki
+            const zAxis = new THREE.Vector3().subVectors(v2Pos, v1Pos).normalize();
+            let yAxis = upVec.clone().normalize();
+            const xAxis = new THREE.Vector3().crossVectors(yAxis, zAxis).normalize();
+            yAxis.crossVectors(zAxis, xAxis).normalize();
+
+            const rotMat = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
+            strutMesh.quaternion.setFromRotationMatrix(rotMat);
 
             strutMesh.castShadow = true;
             strutMesh.receiveShadow = true;
