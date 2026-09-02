@@ -245,28 +245,60 @@ class ThreeApp {
             pipeMesh.castShadow = true;
             nodeGroup.add(pipeMesh);
 
-            node.connectedEdges.forEach((edgeId, idx) => {
-                const angle = (idx / node.connectedEdges.length) * Math.PI * 2;
-                const boltMesh = new THREE.Mesh(boltGeo, boltMat);
-                boltMesh.position.set(
-                    (pipeRadius - 0.005) * Math.cos(angle),
-                    0,
-                    (pipeRadius - 0.005) * Math.sin(angle)
+            const invQ = q.clone().invert();
+            const nodePos = new THREE.Vector3(...node.pos);
+
+            node.connectedEdges.forEach((edgeId) => {
+                const edge = domeData.edges[edgeId];
+                const otherId = edge.v1 === node.id ? edge.v2 : edge.v1;
+                const otherPos = new THREE.Vector3(...domeData.vertices[otherId].pos);
+
+                // Wektor osi centralnej belki w przestrzeni 3D
+                const beamDirWorld = new THREE.Vector3().subVectors(otherPos, nodePos).normalize();
+
+                // Przeliczenie osi belki do lokalnego układu cylindra węzła
+                const beamDirLocal = beamDirWorld.clone().applyQuaternion(invQ);
+
+                // Przecięcie promienia belki z pobocznicą cylindra (płaszczyzna X-Z)
+                const lenXZ = Math.hypot(beamDirLocal.x, beamDirLocal.z);
+                const scale = pipeRadius / (lenXZ || 1);
+
+                const boltPos = new THREE.Vector3(
+                    beamDirLocal.x * scale,
+                    beamDirLocal.y * scale,
+                    beamDirLocal.z * scale
                 );
+
+                const boltMesh = new THREE.Mesh(boltGeo, boltMat);
+                boltMesh.position.copy(boltPos);
+
+                // Orientacja śruby idealnie wzdłuż osi wzdłużnej belki
+                boltMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), beamDirLocal);
+
                 nodeGroup.add(boltMesh);
             });
 
-            pipeMesh.userData = { type: 'NODE', nodeId: node.id, nodeData: node };
+            // Niewidzialna strefa kliknięcia o powiększonym promieniu ułatwiająca trafienie w węzeł
+            const hitGeo = new THREE.SphereGeometry(pipeRadius * 1.5, 8, 8);
+            const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+            const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+            hitMesh.userData = { type: 'NODE', nodeId: node.id, nodeData: node, pipeMesh: pipeMesh };
+            nodeGroup.add(hitMesh);
+            this.nodeMeshes.push(hitMesh);
+
+            pipeMesh.userData = { type: 'NODE', nodeId: node.id, nodeData: node, pipeMesh: pipeMesh };
             this.domeGroup.add(nodeGroup);
             this.nodeMeshes.push(pipeMesh);
 
-            const labelText = this.labelType === 'CODE' ? (node.nodeTypeCode || `W${node.id}`) : `#${node.id}`;
+            const labelText = `#${node.id + 1} ${node.nodeTypeCode || 'W'}`;
             const spriteColor = node.nodeTypeColor || '#00d1b2';
-            const sprite = this.createBadgeSprite(labelText, spriteColor, 32);
+            const sprite = this.createBadgeSprite(labelText, spriteColor, 28);
             
             const spritePos = new THREE.Vector3(...node.pos).add(normVec.clone().multiplyScalar(0.08));
             sprite.position.copy(spritePos);
+            sprite.userData = { type: 'NODE', nodeId: node.id, nodeData: node, pipeMesh: pipeMesh };
             this.nodeLabelGroup.add(sprite);
+            this.nodeMeshes.push(sprite);
         });
 
         // Mapowanie normalnych ścian przyległych dla pozycjonowania belek płasko pod płyty
@@ -352,8 +384,8 @@ class ThreeApp {
             this.domeGroup.add(strutMesh);
             this.strutMeshes.push(strutMesh);
 
-            const variantText = edge.variantCode || edge.strutType;
-            const strutSprite = this.createBadgeSprite(variantText, strutColor, 34);
+            const variantText = `#${edge.id + 1} ${edge.strutType}`;
+            const strutSprite = this.createBadgeSprite(variantText, strutColor, 28);
             const labelPos = midPoint.clone().add(upVec.clone().multiplyScalar(0.04));
             strutSprite.position.copy(labelPos);
             this.strutLabelGroup.add(strutSprite);
@@ -444,14 +476,18 @@ class ThreeApp {
         const intersects = this.raycaster.intersectObjects([...this.nodeMeshes, ...this.strutMeshes]);
 
         if (intersects.length > 0) {
-            const hitData = intersects[0].object.userData;
+            const hitObj = intersects[0].object;
+            const hitData = hitObj.userData;
             
-            if (this.selectedMesh) {
-                this.selectedMesh.material.emissive?.setHex(0x000000);
+            if (this.selectedMesh && this.selectedMesh.material && this.selectedMesh.material.emissive) {
+                this.selectedMesh.material.emissive.setHex(0x000000);
             }
 
-            this.selectedMesh = intersects[0].object;
-            this.selectedMesh.material.emissive?.setHex(0x00ffff);
+            const targetMesh = hitData.pipeMesh || hitObj;
+            this.selectedMesh = targetMesh;
+            if (targetMesh.material && targetMesh.material.emissive) {
+                targetMesh.material.emissive.setHex(0x00ffff);
+            }
 
             if (hitData.type === 'NODE') {
                 this.selectedNodeId = hitData.nodeId;
@@ -464,11 +500,15 @@ class ThreeApp {
     }
 
     selectNodeById(nodeId) {
-        const nodeMesh = this.nodeMeshes.find(m => m.userData.nodeId === nodeId);
+        const nodeMesh = this.nodeMeshes.find(m => m.userData && m.userData.type === 'NODE' && m.userData.nodeId === nodeId && m.userData.pipeMesh === m);
         if (nodeMesh) {
-            if (this.selectedMesh) this.selectedMesh.material.emissive?.setHex(0x000000);
+            if (this.selectedMesh && this.selectedMesh.material && this.selectedMesh.material.emissive) {
+                this.selectedMesh.material.emissive.setHex(0x000000);
+            }
             this.selectedMesh = nodeMesh;
-            this.selectedMesh.material.emissive?.setHex(0x00ffff);
+            if (nodeMesh.material && nodeMesh.material.emissive) {
+                nodeMesh.material.emissive.setHex(0x00ffff);
+            }
         }
     }
 

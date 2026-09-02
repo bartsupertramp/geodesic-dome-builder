@@ -5,7 +5,7 @@ __pycache__/
 *.pyc
 
 # IDE & OS files
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
+# Screenshots & temporary files
+*.jpg
+*.png
+

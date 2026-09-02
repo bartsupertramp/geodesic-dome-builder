@@ -73,10 +73,12 @@ h1 {
 /* Główny Kontener Aplikacji */
 .app-container {
     display: grid;
-    grid-template-columns: 320px 1fr 380px;
+    grid-template-columns: 260px 1fr 370px;
     flex: 1;
     height: calc(100vh - 56px);
     overflow: hidden;
+    max-width: 100vw;
+    box-sizing: border-box;
 }
 
 /* Panele Boczne */
@@ -280,6 +282,47 @@ canvas {
     background-color: #10161f;
     font-weight: bold;
     color: var(--primary);
+}
+
+/* Dedykowana Tabela Inspektora Węzła (Mieszcząca się w 100% w panelu) */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 6px;
+    border: 1px solid var(--panel-border);
+    background-color: #10161f;
+    margin-top: 8px;
+    box-sizing: border-box;
+}
+
+.node-inspector-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.node-inspector-table th, .node-inspector-table td {
+    padding: 6px 3px;
+    text-align: center;
+    border-bottom: 1px solid var(--panel-border);
+    white-space: nowrap;
+}
+
+.node-inspector-table th {
+    background-color: #161e27;
+    color: #a0aec0;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.node-inspector-table tr:last-child td {
+    border-bottom: none;
+}
+
+.node-inspector-table tr:hover {
+    background-color: rgba(0, 209, 178, 0.05);
 }
 
 /* Sekcja Podsumowania Na Dole */

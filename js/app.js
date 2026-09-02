@@ -7,7 +7,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const geoMath = new GeodesicMath();
     
-    const inspector = new NodeInspector('canvas-2d', 'canvas-profile', 'node-detail-content', 'canvas-3d-node-container');
+    const inspector = new NodeInspector('canvas-2d', 'node-detail-content');
 
     const threeApp = new ThreeApp('canvas-3d-container', {
         onNodeSelect: (nodeData) => {
@@ -204,6 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
             row.addEventListener('click', () => {
                 const code = row.getAttribute('data-code');
                 threeApp.highlightNodeType(code);
+                const sampleNode = domeData.vertices.find(v => v.nodeTypeCode === code);
+                if (sampleNode) {
+                    inspector.renderNode(sampleNode, domeData);
+                    threeApp.selectNodeById(sampleNode.id);
+                }
             });
         });
     }

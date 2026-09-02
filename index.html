@@ -20,7 +20,7 @@
     <header>
         <div class="logo-container">
             <span class="logo-icon">🌐</span>
-            <h1>4V Geodesic Dome Builder <span class="badge-4v">SYSTEM RUROWY PVC</span></h1>
+            <h1>4V Geodesic Dome Builder <span class="badge-4v">ŁĄCZNIKI ZE STALOWEJ RURY</span></h1>
         </div>
         <div class="header-actions">
             <button id="btn-export-csv" class="btn btn-secondary">📥 Pobierz CSV</button>
@@ -45,12 +45,12 @@
                 </select>
             </div>
 
-            <!-- Tryb Wiercenia Łącznika PVC -->
+            <!-- Tryb Wiercenia Łącznika Stalowego -->
             <div class="input-group">
-                <label for="select-drilling-mode">Tryb Wiercenia Rury PVC:</label>
+                <label for="select-drilling-mode">Geometria Otworów w Rurze:</label>
                 <select id="select-drilling-mode">
-                    <option value="UNIFORM" selected>Równomierny (60° Heksagon / 72° Pentagon)</option>
-                    <option value="SPHERICAL">Precyzyjny Sferyczny 4V (Kąty z 3D)</option>
+                    <option value="SPHERICAL" selected>Precyzyjny Sferyczny 3D (Rura Stalowa - Wymagane)</option>
+                    <option value="UNIFORM">Równomierny 60°/72° (Tylko elastyczne tworzywo)</option>
                 </select>
             </div>
 
@@ -60,7 +60,7 @@
             </div>
 
             <div class="input-group">
-                <label for="input-pipe-od">Średnica Zewn. Rury PVC (mm):</label>
+                <label for="input-pipe-od">Średnica Zewn. Rury Stalowej (mm):</label>
                 <input type="number" id="input-pipe-od" value="110" step="1" min="32" max="315">
             </div>
 
@@ -118,12 +118,12 @@
 
                 <div style="display:flex; align-items:center; gap:6px; border-left: 1px solid var(--panel-border); padding-left: 10px;">
                     <input type="checkbox" id="chk-show-node-labels" checked>
-                    <label for="chk-show-node-labels" style="cursor:pointer; font-size: 12px;">Węzły (W1-W7)</label>
+                    <label for="chk-show-node-labels" style="cursor:pointer; font-size: 12px;">Numery Węzłów (#1 W1)</label>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:6px;">
                     <input type="checkbox" id="chk-show-strut-labels" checked>
-                    <label for="chk-show-strut-labels" style="cursor:pointer; font-size: 12px;">Belek (A1, B1...)</label>
+                    <label for="chk-show-strut-labels" style="cursor:pointer; font-size: 12px;">Numery Belek (#1 A)</label>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:6px; border-left: 1px solid var(--panel-border); padding-left: 10px;">
@@ -139,22 +139,10 @@
         <aside class="panel panel-right">
             <div class="panel-title">🔍 Inspektor Wybranego Węzła</div>
 
-            <!-- Mini Przeglądarka 3D Łącznika PVC -->
+            <!-- Schemat Węzła 2D: Rozmieszczenie Otworów i Kąty Między Belkami -->
             <div class="canvas-2d-wrapper">
-                <span style="font-size: 11px; color: var(--primary); font-weight:bold;">Trójwymiarowy Podgląd Łącznika 3D (Obracaj Myszką)</span>
-                <div id="canvas-3d-node-container" style="width: 100%; height: 200px; position: relative;"></div>
-            </div>
-
-            <!-- Widok Złącza 2D Od Góry -->
-            <div class="canvas-2d-wrapper">
-                <span style="font-size: 11px; color: var(--text-muted);">Widok Złącza Rurowego Od Góry (Kąty Zacięć)</span>
-                <canvas id="canvas-2d" width="340" height="220"></canvas>
-            </div>
-
-            <!-- Profil Wypukłości -->
-            <div class="canvas-2d-wrapper">
-                <span style="font-size: 11px; color: var(--text-muted);">Profil Wypukłości (Pitch Angle / Ugięcie Ramion)</span>
-                <canvas id="canvas-profile" width="340" height="100"></canvas>
+                <span style="font-size: 12px; color: var(--primary); font-weight:bold;">📐 Kąty Otworów i Belki (Widok z Góry)</span>
+                <canvas id="canvas-2d" width="380" height="360" style="width: 100%; height: auto; display: block; border-radius: 6px;"></canvas>
             </div>
 
             <!-- Tabela Szczegółów Węzła -->

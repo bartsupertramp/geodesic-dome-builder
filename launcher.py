@@ -22,7 +22,6 @@ def find_free_port(start_port=8080):
 
 def get_base_dir():
     if getattr(sys, 'frozen', False):
-        # Jeśli uruchomione z PyInstaller EXE
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.abspath(__file__))
 
@@ -36,18 +35,16 @@ def main():
     base_dir = get_base_dir()
     port = find_free_port(8080)
 
-    # Uruchom serwer w tle
     server_thread = threading.Thread(target=run_server, args=(port, base_dir), daemon=True)
     server_thread.start()
 
     url = f"http://127.0.0.1:{port}/index.html"
     time.sleep(0.5)
     
-    # Otwórz przeglądarkę
     webbrowser.open(url)
 
     print("===============================================================")
-    print("   🌐 4V GEODESIC DOME BUILDER & NODE VISUALIZER")
+    print("   4V GEODESIC DOME BUILDER & NODE VISUALIZER")
     print("===============================================================")
     print(f" Aplikacja zostala uruchomiona pod adresem: {url}")
     print(" Przegladarka zostala otwarta automatycznie.")
@@ -58,7 +55,6 @@ def main():
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\nZamykanie aplikacji...")
         sys.exit(0)
 
 if __name__ == '__main__':

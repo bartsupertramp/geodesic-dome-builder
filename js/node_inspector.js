@@ -1,83 +1,21 @@
 /**
- * NodeInspector - Inspektor Węzła 2D i Trójwymiarowa Przeglądarka 3D Węzła (Mini 3D Inspector)
- * Pozwala na oglądanie pojedynczego łącznika PVC w pełnym 3D z ugięciem sferycznym i kątami zacięć.
+ * NodeInspector - Inspektor Węzła 2D i Tabele Warsztatowe dla Łączników ze Stalowej Rury
+ * Prezentuje rzeczywiste kąty między otworami (3D) oraz wymiary trasowania po obwodzie rury.
  */
 
 class NodeInspector {
-    constructor(canvas2dId, profileCanvasId, detailContainerId, canvas3dNodeId) {
+    constructor(canvas2dId, detailContainerIdOrProfile, detailContainerId) {
         this.canvas2d = document.getElementById(canvas2dId);
         this.ctx2d = this.canvas2d ? this.canvas2d.getContext('2d') : null;
-        
-        this.profileCanvas = document.getElementById(profileCanvasId);
-        this.ctxProfile = this.profileCanvas ? this.profileCanvas.getContext('2d') : null;
-
-        this.detailContainer = document.getElementById(detailContainerId);
-        this.canvas3dNodeContainer = document.getElementById(canvas3dNodeId);
-
-        this.drillingMode = 'UNIFORM'; // 'UNIFORM' (Równomierne 60°/72°) lub 'SPHERICAL' (Precyzyjne 4V)
-
-        if (this.canvas3dNodeContainer) {
-            this.init3DNodeInspector();
-        }
+        const containerId = detailContainerId || detailContainerIdOrProfile;
+        this.detailContainer = document.getElementById(containerId);
+        this.drillingMode = 'SPHERICAL'; // 'SPHERICAL' (Precyzyjne 3D dla stali) lub 'UNIFORM'
     }
 
     setDrillingMode(mode) {
         this.drillingMode = mode;
         if (this.currentNodeData && this.currentFullDomeData) {
             this.renderNode(this.currentNodeData, this.currentFullDomeData);
-        }
-    }
-
-    /**
-     * Inicjalizacja dedykowanego mini-silnika 3D dla pojedynczego węzła
-     */
-    init3DNodeInspector() {
-        const width = this.canvas3dNodeContainer.clientWidth || 340;
-        const height = this.canvas3dNodeContainer.clientHeight || 240;
-
-        this.scene3d = new THREE.Scene();
-        this.scene3d.background = new THREE.Color(0x161e27);
-
-        this.camera3d = new THREE.PerspectiveCamera(40, width / height, 0.01, 20);
-        this.camera3d.position.set(0, 0.4, 0.6);
-
-        this.renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        this.renderer3d.setSize(width, height);
-        this.renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.renderer3d.shadowMap.enabled = true;
-
-        this.canvas3dNodeContainer.appendChild(this.renderer3d.domElement);
-
-        // Oświetlenie mini sceny 3D
-        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-        this.scene3d.add(ambient);
-
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-        dirLight.position.set(2, 4, 3);
-        dirLight.castShadow = true;
-        this.scene3d.add(dirLight);
-
-        const fillLight = new THREE.DirectionalLight(0x00d1b2, 0.4);
-        fillLight.position.set(-2, -1, -2);
-        this.scene3d.add(fillLight);
-
-        this.controls3d = new THREE.OrbitControls(this.camera3d, this.renderer3d.domElement);
-        this.controls3d.enableDamping = true;
-        this.controls3d.dampingFactor = 0.08;
-        this.controls3d.target.set(0, 0, 0);
-        this.controls3d.update();
-
-        this.nodeGroup3d = new THREE.Group();
-        this.scene3d.add(this.nodeGroup3d);
-
-        this.animate3D();
-    }
-
-    animate3D() {
-        requestAnimationFrame(() => this.animate3D());
-        if (this.controls3d) this.controls3d.update();
-        if (this.renderer3d && this.scene3d && this.camera3d) {
-            this.renderer3d.render(this.scene3d, this.camera3d);
         }
     }
 
@@ -89,115 +27,14 @@ class NodeInspector {
         if (!detail) return;
 
         this.draw2dHub(detail, fullDomeData);
-        this.drawProfile(detail);
-        this.render3DNodeModel(detail, fullDomeData);
         this.renderTable(detail, fullDomeData);
     }
 
     /**
-     * Renders high-detail 3D isolated node model with timber miter cuts & PVC hub
-     */
-    render3DNodeModel(detail, fullDomeData) {
-        if (!this.nodeGroup3d) return;
-
-        while (this.nodeGroup3d.children.length > 0) {
-            const obj = this.nodeGroup3d.children[0];
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) {
-                if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-                else obj.material.dispose();
-            }
-            this.nodeGroup3d.remove(obj);
-        }
-
-        const pipeRadius = fullDomeData.pipeRadius || 0.055;
-        const pipeHeight = Math.max(0.06, (fullDomeData.pipeODMm / 1000.0) * 0.8);
-        const timberW = (fullDomeData.timberWMm || 45) / 1000.0;
-        const timberH = (fullDomeData.timberHMm || 45) / 1000.0;
-
-        // 1. Rura PVC Łącznika
-        const hubGeo = new THREE.CylinderGeometry(pipeRadius, pipeRadius, pipeHeight, 32, 1, true);
-        const hubMat = new THREE.MeshStandardMaterial({
-            color: 0x222a35,
-            roughness: 0.3,
-            metalness: 0.3,
-            side: THREE.DoubleSide
-        });
-
-        const pipeMesh = new THREE.Mesh(hubGeo, hubMat);
-        pipeMesh.castShadow = true;
-        this.nodeGroup3d.add(pipeMesh);
-
-        // Krawędź turkusowa pierścienia rury
-        const rimGeo = new THREE.TorusGeometry(pipeRadius, 0.003, 16, 48);
-        const rimMat = new THREE.MeshBasicMaterial({ color: 0x00d1b2 });
-        const rimTop = new THREE.Mesh(rimGeo, rimMat);
-        rimTop.rotation.x = Math.PI / 2;
-        rimTop.position.y = pipeHeight / 2;
-        this.nodeGroup3d.add(rimTop);
-
-        const boltGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.02, 12);
-        const boltMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.1 });
-
-        // 2. Ramiona Belek Dochodzących z dociętym czołem i śrubami
-        const valency = detail.struts.length;
-
-        detail.struts.forEach((strut, idx) => {
-            // Kąt dochodzenia belki
-            let angleDeg = strut.azimuthDeg;
-            if (this.drillingMode === 'UNIFORM') {
-                angleDeg = (idx / valency) * 360.0;
-            }
-
-            const rad = (angleDeg * Math.PI) / 180.0;
-            const strutLen = 0.22; // długość próbna belki w podglądzie
-
-            // Drewniana belka docięta z nachyleniem ugięcia (pitch)
-            const strutGeo = new THREE.BoxGeometry(timberW, timberH, strutLen);
-            const strutMat = new THREE.MeshStandardMaterial({
-                color: strut.color || 0xC19A6B,
-                roughness: 0.5,
-                metalness: 0.1
-            });
-
-            const strutMesh = new THREE.Mesh(strutGeo, strutMat);
-
-            // Pozycja belki zaczynająca się od krawędzi rury PVC
-            const centerDist = pipeRadius + strutLen / 2;
-            strutMesh.position.set(
-                centerDist * Math.cos(rad),
-                0,
-                centerDist * Math.sin(rad)
-            );
-
-            // Obrót belki wokół rury i ugięcie sferyczne (pitch angle)
-            strutMesh.rotation.y = -rad + Math.PI / 2;
-            
-            // Ugięcie sferyczne w górę/dół
-            const pitchRad = (detail.pitchAngleDeg * Math.PI) / 180.0;
-            strutMesh.rotation.z = pitchRad * 0.3;
-
-            strutMesh.castShadow = true;
-            this.nodeGroup3d.add(strutMesh);
-
-            // Śruba mocująca wewnątrz rury
-            const boltMesh = new THREE.Mesh(boltGeo, boltMat);
-            boltMesh.position.set(
-                (pipeRadius - 0.006) * Math.cos(rad),
-                0,
-                (pipeRadius - 0.006) * Math.sin(rad)
-            );
-            this.nodeGroup3d.add(boltMesh);
-        });
-
-        // Reset pozycji kamery 3D dla czytelnego podglądu
-        this.camera3d.position.set(0, 0.35, 0.45);
-        this.controls3d.target.set(0, 0, 0);
-        this.controls3d.update();
-    }
-
-    /**
-     * Rysuje czytelny dwuwymiarowy widok pierścienia PVC od góry bez nachodzenia tekstów
+     * Rysuje czytelny, precyzyjny schemat 2D łącznika ze stali:
+     * - Rzeczywiste kąty między osiami otworów (Delta°) z modelu 3D na łukach wymiarowych
+     * - Punkty wiercenia otworów (#1..#N) z czerwonym punktem osi
+     * - Przypisane belki (A, B, C, D...) bez mylących oznaczeń zacięć stolarskich
      */
     draw2dHub(detail, fullDomeData) {
         if (!this.ctx2d) return;
@@ -210,211 +47,260 @@ class NodeInspector {
 
         ctx.clearRect(0, 0, width, height);
 
+        // Ciemne tło techniczne
         ctx.fillStyle = '#10161f';
         ctx.fillRect(0, 0, width, height);
 
-        const pipeRadiusPx = Math.min(width, height) * 0.17;
-        const strutLengthPx = Math.min(width, height) * 0.30;
-        const timberW = Math.max(14, Math.min(width, height) * 0.055);
-
         const valency = detail.struts.length;
+        if (valency === 0) return;
 
-        // 1. Belki i Etykiety Zacięć
-        detail.struts.forEach((strut, idx) => {
-            let angleDeg = strut.azimuthDeg;
+        const baseAzimuth = detail.struts[0].azimuthDeg;
+        const pipeRadiusPx = Math.min(width, height) * 0.16;
+        const beamLengthPx = Math.min(width, height) * 0.28;
+        const timberW = Math.max(16, Math.min(width, height) * 0.055);
+        const arcRadiusPx = pipeRadiusPx + 40;
+
+        // Oblicz relatywne kąty dla każdego ramienia
+        const arms = detail.struts.map((s, idx) => {
+            let angleDeg = (s.azimuthDeg - baseAzimuth + 360) % 360;
             if (this.drillingMode === 'UNIFORM') {
                 angleDeg = (idx / valency) * 360.0;
             }
+            return {
+                ...s,
+                idx,
+                angleDeg,
+                rad: (angleDeg * Math.PI) / 180.0
+            };
+        });
 
-            const rad = (angleDeg * Math.PI) / 180.0;
+        // 1. Rysowanie belek drewnianych dochodzących do węzła
+        arms.forEach(arm => {
+            const rad = arm.rad;
 
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(rad);
 
-            const startX = pipeRadiusPx;
+            // Korpus belki w jej kolorze
+            ctx.fillStyle = arm.color || '#C19A6B';
+            ctx.fillRect(pipeRadiusPx, -timberW / 2, beamLengthPx, timberW);
 
-            // Drewniana belka
-            ctx.fillStyle = strut.color || '#C19A6B';
-            ctx.fillRect(startX, -timberW / 2, strutLengthPx, timberW);
+            // Obrys belki
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.lineWidth = 1.2;
+            ctx.strokeRect(pipeRadiusPx, -timberW / 2, beamLengthPx, timberW);
 
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(startX, -timberW / 2, strutLengthPx, timberW);
-
-            // Kąt zacięcia po lewej i prawej stronie (czytelny zapis)
-            ctx.fillStyle = '#00ffff';
-            ctx.font = 'bold 10px monospace';
+            // Etykieta belki z jej unikalnym numerem (np. "#1 (C)", "#2 (A)")
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             
-            // Unikaj odwróconych napisów na dolnej połowie koła
-            const isBottomHalf = angleDeg > 90 && angleDeg < 270;
-            if (isBottomHalf) {
+            // Unikaj odwróconych napisów na lewej półkuli
+            const isFlipped = arm.angleDeg > 90 && arm.angleDeg < 270;
+            if (isFlipped) {
                 ctx.save();
-                ctx.translate(startX + 35, 0);
+                ctx.translate(pipeRadiusPx + beamLengthPx * 0.58, 0);
                 ctx.rotate(Math.PI);
-                ctx.fillText(`L:${strut.miterLeftDeg.toFixed(1)}°`, 0, timberW / 2 + 10);
-                ctx.fillText(`P:${strut.miterRightDeg.toFixed(1)}°`, 0, -timberW / 2 - 3);
+                ctx.fillText(`#${arm.edgeId + 1} (${arm.strutType})`, 0, 0);
                 ctx.restore();
             } else {
-                ctx.fillText(`L:${strut.miterLeftDeg.toFixed(1)}°`, startX + 15, -timberW / 2 - 4);
-                ctx.fillText(`P:${strut.miterRightDeg.toFixed(1)}°`, startX + 15, timberW / 2 + 12);
+                ctx.fillText(`#${arm.edgeId + 1} (${arm.strutType})`, pipeRadiusPx + beamLengthPx * 0.58, 0);
             }
-
-            // Etykieta typu belki (A, B, C...)
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 12px sans-serif';
-            ctx.fillText(strut.strutType, startX + strutLengthPx - 16, 4);
 
             ctx.restore();
         });
 
-        // 2. Pierścień PVC Rury
+        // 2. Łuki wymiarowe kątów między sąsiednimi belkami / otworami (Kąty Delta)
+        for (let i = 0; i < valency; i++) {
+            const curr = arms[i];
+            const next = arms[(i + 1) % valency];
+            
+            let deltaDeg = (next.angleDeg - curr.angleDeg + 360) % 360;
+            if (deltaDeg === 0) deltaDeg = 360;
+
+            const startRad = curr.rad;
+            const endRad = curr.rad + (deltaDeg * Math.PI / 180.0);
+            const midRad = curr.rad + (deltaDeg * Math.PI / 360.0);
+
+            // Rysuj przerywany łuk wymiarowy
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, arcRadiusPx, startRad, endRad);
+            ctx.strokeStyle = '#ffd166';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 3]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Kropki graniczne łuku
+            const d1X = centerX + arcRadiusPx * Math.cos(startRad);
+            const d1Y = centerY + arcRadiusPx * Math.sin(startRad);
+            const d2X = centerX + arcRadiusPx * Math.cos(endRad);
+            const d2Y = centerY + arcRadiusPx * Math.sin(endRad);
+
+            ctx.beginPath();
+            ctx.arc(d1X, d1Y, 2.5, 0, Math.PI * 2);
+            ctx.arc(d2X, d2Y, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffd166';
+            ctx.fill();
+
+            // Plakietka z kątem (np. 54.9°, 60.7°, 64.5°)
+            const textX = centerX + arcRadiusPx * Math.cos(midRad);
+            const textY = centerY + arcRadiusPx * Math.sin(midRad);
+            const angleText = `${deltaDeg.toFixed(1)}°`;
+
+            ctx.font = 'bold 11px monospace';
+            const metrics = ctx.measureText(angleText);
+            const bW = metrics.width + 10;
+            const bH = 18;
+
+            ctx.fillStyle = '#0f141c';
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(textX - bW / 2, textY - bH / 2, bW, bH, 4);
+            } else {
+                ctx.rect(textX - bW / 2, textY - bH / 2, bW, bH);
+            }
+            ctx.fill();
+            ctx.strokeStyle = '#ffd166';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffd166';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(angleText, textX, textY);
+        }
+
+        // 3. Pierścień Rury Stalowej
+        // Ścianka zewnętrzna
         ctx.beginPath();
         ctx.arc(centerX, centerY, pipeRadiusPx, 0, Math.PI * 2);
         ctx.fillStyle = '#1e2632';
         ctx.fill();
-        ctx.lineWidth = 5;
+        ctx.lineWidth = 4;
         ctx.strokeStyle = '#00d1b2';
         ctx.stroke();
 
+        // Światło wewnętrzne rury stalowej
         ctx.beginPath();
-        ctx.arc(centerX, centerY, pipeRadiusPx * 0.72, 0, Math.PI * 2);
-        ctx.fillStyle = '#0f141c';
+        ctx.arc(centerX, centerY, pipeRadiusPx * 0.62, 0, Math.PI * 2);
+        ctx.fillStyle = '#0a0e14';
         ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#2d3748';
+        ctx.stroke();
 
-        // 3. Śruby mocujące
-        detail.struts.forEach((strut, idx) => {
-            let angleDeg = strut.azimuthDeg;
-            if (this.drillingMode === 'UNIFORM') {
-                angleDeg = (idx / valency) * 360.0;
-            }
-            const rad = (angleDeg * Math.PI) / 180.0;
+        // 4. Punkty Otworów na Rurze Stalowej i Numery Otworów
+        arms.forEach((arm, i) => {
+            const rad = arm.rad;
+            const holeDist = pipeRadiusPx * 0.84;
+            const holeX = centerX + holeDist * Math.cos(rad);
+            const holeY = centerY + holeDist * Math.sin(rad);
 
-            const boltX = centerX + (pipeRadiusPx * 0.86) * Math.cos(rad);
-            const boltY = centerY + (pipeRadiusPx * 0.86) * Math.sin(rad);
-
+            // Srebrny łeb śruby / podkładka
             ctx.beginPath();
-            ctx.arc(boltX, boltY, 4, 0, Math.PI * 2);
+            ctx.arc(holeX, holeY, 4.5, 0, Math.PI * 2);
             ctx.fillStyle = '#e2e8f0';
             ctx.fill();
             ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1.2;
             ctx.stroke();
+
+            // Czerwony centralny punkt wiercenia (oś belki)
+            ctx.beginPath();
+            ctx.arc(holeX, holeY, 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff4136';
+            ctx.fill();
+
+            // Numer otworu (#1, #2...) wewnątrz pierścienia
+            const numDist = pipeRadiusPx * 0.42;
+            const numX = centerX + numDist * Math.cos(rad);
+            const numY = centerY + numDist * Math.sin(rad);
+
+            ctx.fillStyle = '#a0aec0';
+            ctx.font = 'bold 9px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`#${i + 1}`, numX, numY);
         });
 
-        // Etykieta środkowa
+        // 5. Centralna Etykieta Węzła (np. "W2")
         ctx.fillStyle = '#00d1b2';
-        ctx.font = 'bold 13px sans-serif';
+        ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(detail.nodeTypeCode || detail.type, centerX, centerY);
-    }
+        ctx.fillText(detail.nodeTypeCode || detail.type, centerX, centerY - 6);
 
-    /**
-     * Widok profilowy ugięcia węzła (Pitch Gauge)
-     */
-    drawProfile(detail) {
-        if (!this.ctxProfile) return;
-
-        const ctx = this.ctxProfile;
-        const width = this.profileCanvas.width;
-        const height = this.profileCanvas.height;
-        const centerX = width / 2;
-        const centerY = height * 0.72;
-
-        ctx.clearRect(0, 0, width, height);
-
-        ctx.fillStyle = '#10161f';
-        ctx.fillRect(0, 0, width, height);
-
-        ctx.strokeStyle = '#2b3846';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.moveTo(20, centerY);
-        ctx.lineTo(width - 20, centerY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        const pitchRad = (detail.pitchAngleDeg * Math.PI) / 180.0;
-        const armLen = width * 0.36;
-
-        const leftX = centerX - armLen * Math.cos(pitchRad);
-        const leftY = centerY - armLen * Math.sin(pitchRad);
-
-        const rightX = centerX + armLen * Math.cos(pitchRad);
-        const rightY = centerY - armLen * Math.sin(pitchRad);
-
-        ctx.strokeStyle = detail.type === 'PENTAGON' ? '#ff3860' : '#3273dc';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(leftX, leftY);
-        ctx.lineTo(centerX, centerY - 12);
-        ctx.lineTo(rightX, rightY);
-        ctx.stroke();
-
-        ctx.fillStyle = '#1e2632';
-        ctx.fillRect(centerX - 14, centerY - 22, 28, 18);
-        ctx.strokeStyle = '#00d1b2';
-        ctx.strokeRect(centerX - 14, centerY - 22, 28, 18);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`Ugięcie Sferyczne Węzła (Pitch Angle): ${detail.pitchAngleDeg.toFixed(2)}°`, centerX, 18);
+        ctx.fillStyle = '#718096';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillText(`${valency} ramion`, centerX, centerY + 11);
     }
 
     renderTable(detail, fullDomeData) {
         if (!this.detailContainer) return;
 
+        const pipeOD = fullDomeData.pipeODMm || 110;
+        const circumferenceMm = Math.PI * pipeOD;
+        const baseAzimuth = detail.struts[0] ? detail.struts[0].azimuthDeg : 0;
+        const valency = detail.struts.length;
+
         let html = `
             <div class="node-summary-card">
                 <div class="node-badge node-${detail.type.toLowerCase()}">
-                    WĘZEŁ ${detail.nodeTypeCode || ('#' + detail.nodeId)} (${detail.type})
+                    WĘZEŁ #${detail.nodeId + 1} (${detail.nodeTypeCode || detail.type})
                 </div>
                 <div class="node-stats">
-                    <div><span>Wypukłość Sferyczna:</span> <strong>${detail.pitchAngleDeg.toFixed(2)}°</strong></div>
-                    <div><span>Rura PVC:</span> <strong>${fullDomeData.pipeODMm} mm</strong></div>
-                    <div><span>Liczba Ramion:</span> <strong>${detail.struts.length}</strong></div>
-                    <div><span>Tryb Wierceń:</span> <strong>${this.drillingMode === 'UNIFORM' ? 'Równomierny (60°/72°)' : 'Precyzyjny 4V'}</strong></div>
+                    <div><span>Wypukłość:</span> <strong>${detail.pitchAngleDeg.toFixed(2)}°</strong></div>
+                    <div><span>Rura Stal OD:</span> <strong>${pipeOD} mm</strong></div>
+                    <div><span>Ramiona:</span> <strong>${detail.struts.length} szt.</strong></div>
+                    <div><span>Obwód rury:</span> <strong>${circumferenceMm.toFixed(1)} mm</strong></div>
                 </div>
             </div>
-            
-            <table class="cut-table">
-                <thead>
-                    <tr>
-                        <th>Belka</th>
-                        <th>Kąt Dojścia</th>
-                        <th>Dł. Docięcia</th>
-                        <th>Zacięcie L</th>
-                        <th>Zacięcie P</th>
-                    </tr>
-                </thead>
-                <tbody>
+
+            <div class="table-responsive">
+                <table class="node-inspector-table">
+                    <thead>
+                        <tr>
+                            <th title="Numer otworu w rurze">Otwór</th>
+                            <th title="Numer i typ belki">Belka</th>
+                            <th title="Rozstęp kątowy do poprzedniego otworu">Kąt Δ</th>
+                            <th title="Wymiar po obwodzie rury od Otworu #1">Obwód (od 0)</th>
+                            <th title="Długość docięcia belki drewnianej">Dł. cięcia</th>
+                            <th title="Kąty zacięcia stolarskiego">Zacięcia L/P</th>
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
 
-        const valency = detail.struts.length;
-
         detail.struts.forEach((s, idx) => {
-            let angleDeg = s.azimuthDeg;
+            let angleDeg = (s.azimuthDeg - baseAzimuth + 360) % 360;
+            let deltaDeg = s.deltaLeftDeg;
             if (this.drillingMode === 'UNIFORM') {
                 angleDeg = (idx / valency) * 360.0;
+                deltaDeg = 360.0 / valency;
             }
+
+            const arcPosMm = (angleDeg / 360.0) * circumferenceMm;
+            const miterStr = `${s.miterLeftDeg.toFixed(1)}°/${s.miterRightDeg.toFixed(1)}°`;
 
             html += `
                 <tr>
-                    <td><span class="strut-tag" style="background-color:${s.color}">${s.strutType}</span></td>
-                    <td>${angleDeg.toFixed(1)}°</td>
+                    <td><strong style="color: #ffd166;">#${idx + 1}</strong></td>
+                    <td><span class="strut-tag" style="background-color:${s.color}">#${s.edgeId + 1} ${s.strutType}</span></td>
+                    <td><strong>${idx === 0 ? '0.0°' : `+${deltaDeg.toFixed(1)}°`}</strong></td>
+                    <td style="color:#00d1b2; font-weight: bold;">${arcPosMm.toFixed(1)} mm</td>
                     <td><strong>${(s.cutLen * 1000).toFixed(0)} mm</strong></td>
-                    <td>${s.miterLeftDeg.toFixed(1)}°</td>
-                    <td>${s.miterRightDeg.toFixed(1)}°</td>
+                    <td style="color:#cbd5e0; font-size: 10px;">${miterStr}</td>
                 </tr>
             `;
         });
 
         html += `
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         `;
 
         this.detailContainer.innerHTML = html;
