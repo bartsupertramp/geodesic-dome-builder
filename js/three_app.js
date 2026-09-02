@@ -216,19 +216,20 @@ class ThreeApp {
         const pitch2 = ((v2Detail?.pitchAngleDeg || 7.27) * Math.PI) / 180;
 
         function calcZ1(x, y) {
-            const delta = x < 0 ? deltaL1 : deltaR1;
-            const miterSetback = Math.abs(x) * Math.tan(delta / 2);
-            const cylSetback = pipeRadius - Math.sqrt(Math.max(0, pipeRadius * pipeRadius - x * x));
-            const setback = Math.max(miterSetback, cylSetback) + y * Math.sin(pitch1);
-            return -halfL + pipeRadius + setback;
+            // Rura walcowa o promieniu pipeRadius na osi Z = -halfL
+            // Czoło belki na bocznej pozycji x dotyka walca na odległości rCyl od osi rury:
+            const rCyl = Math.sqrt(Math.max(0, pipeRadius * pipeRadius - x * x));
+            // Kąt ugięcia sferycznego czaszy (pitch angle)
+            const pitchOffset = y * Math.sin(pitch1);
+            // Czoło belki obejmuje rurę (wklęsły kielich otaczający pierścień):
+            return -halfL + rCyl - pitchOffset;
         }
 
         function calcZ2(x, y) {
-            const delta = x > 0 ? deltaL2 : deltaR2;
-            const miterSetback = Math.abs(x) * Math.tan(delta / 2);
-            const cylSetback = pipeRadius - Math.sqrt(Math.max(0, pipeRadius * pipeRadius - x * x));
-            const setback = Math.max(miterSetback, cylSetback) + y * Math.sin(pitch2);
-            return halfL - pipeRadius - setback;
+            // Analogicznie na drugim końcu przy Z = +halfL:
+            const rCyl = Math.sqrt(Math.max(0, pipeRadius * pipeRadius - x * x));
+            const pitchOffset = y * Math.sin(pitch2);
+            return halfL - rCyl + pitchOffset;
         }
 
         // 12 wierzchołków
