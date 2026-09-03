@@ -177,9 +177,26 @@
 
     </div>
 
-    <!-- Sekcja Dolna: Podsumowania (Licznik Węzłów & Szczegółowa Lista Cięć) -->
+    <!-- Sekcja Dolna: Podsumowania i Karty Warsztatowe Węzłów -->
     <div class="bottom-drawer">
-        <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--panel-border); padding-bottom: 8px; margin-bottom: 12px;">
+            <div style="display: flex; gap: 8px;">
+                <button id="bottom-tab-summary" type="button" class="btn" style="padding: 5px 14px; font-size: 12px; font-weight: bold; background: rgba(0,209,178,0.2); border: 1px solid var(--primary); color: #ffffff; border-radius: 4px; cursor: pointer; transition: 0.2s;">
+                    📋 Zestawienie Węzłów i Lista Cięć
+                </button>
+                <button id="bottom-tab-node-cards" type="button" class="btn" style="padding: 5px 14px; font-size: 12px; font-weight: bold; background: #10161f; border: 1px solid var(--panel-border); color: var(--text-muted); border-radius: 4px; cursor: pointer; transition: 0.2s;">
+                    📑 Karty Trasowania Otworów w Rurach (W1 - W7)
+                </button>
+            </div>
+            <div>
+                <button id="btn-print-workshop" class="btn btn-secondary" style="font-size: 12px; padding: 5px 14px; font-weight: bold; border-color: var(--primary); color: #ffffff;">
+                    🖨️ Drukuj Karty Warsztatowe (A4)
+                </button>
+            </div>
+        </div>
+
+        <!-- Widok 1: Klasyfikacja Węzłów i Lista Cięć Belek -->
+        <div id="bottom-view-summary" style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px;">
             <div>
                 <div class="panel-title" style="margin-bottom: 8px;">🏷️ Licznik Rodzajów Węzłów (Node Classification W1-W7)</div>
                 <div id="node-type-summary"></div>
@@ -190,7 +207,18 @@
                 <div id="cut-list-summary"></div>
             </div>
         </div>
+
+        <!-- Widok 2: Karty Trasowania Wszystkich Węzłów (W1 - W7) -->
+        <div id="bottom-view-node-cards" style="display: none; flex-direction: column; gap: 14px;">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+                Wszystkie wymiary w poniższych tabelach podano w milimetrach do trasowania taśmą mierniczą po obwodzie rury stalowej ($OD = 110\text{ mm}$, $C = 345.6\text{ mm}$) od Otworu #1 ($0.0\text{ mm}$).
+            </div>
+            <div id="all-node-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px;"></div>
+        </div>
     </div>
+
+    <!-- Dedykowany Niewidoczny Kontener do Wydruku A4 -->
+    <div id="print-workshop-report" style="display: none;"></div>
 
     <!-- Skrypty Aplikacji z Cache-Bustingiem -->
     <script src="js/geodesic_math.js?v=20260901_v5"></script>

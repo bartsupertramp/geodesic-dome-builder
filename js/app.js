@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderStrutVariantTable(currentDomeData);
         renderNodeTypeTable(currentDomeData);
+        renderAllNodeCards(currentDomeData);
     }
 
     function renderStrutVariantTable(domeData) {
@@ -218,6 +219,237 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderAllNodeCards(domeData) {
+        const container = document.getElementById('all-node-cards-container');
+        if (!container) return;
+
+        const pipeOD = domeData.pipeODMm || 110;
+        const circMm = Math.PI * pipeOD;
+
+        let html = '';
+
+        Object.values(domeData.summaryByNodeType).forEach(nt => {
+            const sampleId = nt.nodeIds[0];
+            const detail = domeData.nodeDetails[sampleId];
+            if (!detail || !detail.struts) return;
+
+            const baseAz = detail.struts[0].azimuthDeg;
+
+            html += `
+                <div class="workshop-node-card">
+                    <div class="workshop-node-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="strut-tag" style="background-color: ${nt.color}; font-size: 13px; font-weight: bold; padding: 4px 10px;">${nt.code}</span>
+                            <strong style="font-size: 13px; color: #fff;">${nt.description}</strong>
+                        </div>
+                        <div style="font-size: 12px; color: #ffd166; font-weight: bold;">
+                            ${nt.count} szt.
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; margin: 4px 0; color: #a0aec0;">
+                        <span>Wypukłość (Pitch): <strong style="color: #fff;">${detail.pitchAngleDeg.toFixed(2)}°</strong></span>
+                        <span>Rura Stal OD: <strong style="color: #fff;">${pipeOD} mm</strong></span>
+                        <span>Obwód: <strong style="color: #00d1b2;">${circMm.toFixed(1)} mm</strong></span>
+                        <span>Wzór: <strong style="color: #ffd166;">${nt.strutPattern}</strong></span>
+                    </div>
+                    <table class="workshop-table">
+                        <thead>
+                            <tr>
+                                <th>Otwór</th>
+                                <th>Belka</th>
+                                <th>Azymut</th>
+                                <th>Krok Δ</th>
+                                <th style="color: #00d1b2;">Obwód (od 0.0)</th>
+                                <th>Dł. cięcia</th>
+                                <th>Zacięcia L/P</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            detail.struts.forEach((s, idx) => {
+                const angleDeg = (s.azimuthDeg - baseAz + 360) % 360;
+                const arcPosMm = (angleDeg / 360.0) * circMm;
+                const miterStr = `${s.miterLeftDeg.toFixed(1)}°/${s.miterRightDeg.toFixed(1)}°`;
+
+                html += `
+                    <tr>
+                        <td><strong style="color: #ffd166;">#${idx + 1}</strong></td>
+                        <td><span class="strut-tag" style="background-color:${s.color}">#${s.edgeId + 1} ${s.strutType}</span></td>
+                        <td>${angleDeg.toFixed(1)}°</td>
+                        <td><strong>${idx === 0 ? '0.0°' : `+${s.deltaLeftDeg.toFixed(1)}°`}</strong></td>
+                        <td style="color:#00d1b2; font-weight: bold;">${arcPosMm.toFixed(1)} mm</td>
+                        <td><strong>${(s.cutLen * 1000).toFixed(0)} mm</strong></td>
+                        <td style="color:#cbd5e0; font-size: 10px;">${miterStr}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function generatePrintReport(domeData) {
+        const container = document.getElementById('print-workshop-report');
+        if (!container || !domeData) return;
+
+        const pipeOD = domeData.pipeODMm || 110;
+        const circMm = Math.PI * pipeOD;
+        const dateStr = new Date().toLocaleDateString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+        let totalNodes = 0;
+        Object.values(domeData.summaryByNodeType).forEach(nt => totalNodes += nt.count);
+
+        let totalStruts = 0;
+        let totalMeterage = 0;
+        Object.values(domeData.summaryByStrutVariant).forEach(v => {
+            totalStruts += v.count;
+            totalMeterage += parseFloat(v.totalMeterage);
+        });
+
+        let html = `
+            <div class="print-report-header">
+                <div>
+                    <div class="print-report-title">📐 KOPUŁA GEODEZYJNA ${domeData.frequency}V – KARTY WARSZTATOWE</div>
+                    <div style="font-size: 9pt; color: #555;">DOKUMENTACJA WYKONAWCZA: TRASOWANIE ŁĄCZNIKÓW ZE STALOWEJ RURY I ZESTAWIENIE CIĘĆ BELEK</div>
+                </div>
+                <div style="text-align: right; font-size: 8.5pt; color: #555;">
+                    <div>Data wydruku: ${dateStr}</div>
+                    <div>Geodesic Dome Builder</div>
+                </div>
+            </div>
+
+            <div class="print-params-grid">
+                <div><strong>Promień kopuły (R):</strong> ${domeData.radius} m</div>
+                <div><strong>Rura stalowa OD:</strong> ${pipeOD} mm (Obwód: ${circMm.toFixed(1)} mm)</div>
+                <div><strong>Przekrój drewna:</strong> ${domeData.timberWMm} x ${domeData.timberHMm} mm</div>
+                <div><strong>Suma elementów:</strong> ${totalNodes} węzłów / ${totalStruts} belek (${totalMeterage.toFixed(1)} m)</div>
+            </div>
+
+            <div class="print-section-title">CZĘŚĆ 1: KARTY TRASOWANIA OTWORÓW W RURACH STALOWYCH (WĘZŁY W1 - W7)</div>
+            <div style="font-size: 8pt; color: #444; margin-bottom: 8px;">
+                Instrukcja trasowania: Otwory trasować taśmą mierniczą po zewnętrznym obwodzie rury stalowej ($C = ${circMm.toFixed(1)}\\text{ mm}$) od Otworu #1 ($0.0\\text{ mm}$) w kierunku przeciwnym do ruchu wskazówek zegara (CCW).
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        `;
+
+        Object.values(domeData.summaryByNodeType).forEach(nt => {
+            const sampleId = nt.nodeIds[0];
+            const detail = domeData.nodeDetails[sampleId];
+            if (!detail || !detail.struts) return;
+
+            const baseAz = detail.struts[0].azimuthDeg;
+
+            html += `
+                <div class="print-node-card">
+                    <div class="print-node-card-header">
+                        <div>WĘZEŁ ${nt.code} – ${nt.description}</div>
+                        <div>ILOŚĆ: ${nt.count} SZT.</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 8pt; margin-bottom: 4px; color: #333;">
+                        <span>Wypukłość (Pitch): <strong>${detail.pitchAngleDeg.toFixed(2)}°</strong></span>
+                        <span>Wzór belek: <strong>${nt.strutPattern}</strong></span>
+                        <span>Ramiona: <strong>${nt.valency}</strong></span>
+                    </div>
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th>Otwór</th>
+                                <th>Belka</th>
+                                <th>Azymut</th>
+                                <th>Krok Δ</th>
+                                <th>Obwód (od 0.0 mm)</th>
+                                <th>Dł. cięcia</th>
+                                <th>Zacięcia L/P</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            detail.struts.forEach((s, idx) => {
+                const angleDeg = (s.azimuthDeg - baseAz + 360) % 360;
+                const arcPosMm = (angleDeg / 360.0) * circMm;
+                const miterStr = `${s.miterLeftDeg.toFixed(1)}°/${s.miterRightDeg.toFixed(1)}°`;
+
+                html += `
+                    <tr>
+                        <td><strong>#${idx + 1}</strong></td>
+                        <td><strong>${s.strutType}</strong></td>
+                        <td>${angleDeg.toFixed(1)}°</td>
+                        <td>${idx === 0 ? '0.0°' : `+${s.deltaLeftDeg.toFixed(1)}°`}</td>
+                        <td><strong>${arcPosMm.toFixed(1)} mm</strong></td>
+                        <td>${(s.cutLen * 1000).toFixed(0)} mm</td>
+                        <td style="font-size: 7.5pt;">${miterStr}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        });
+
+        html += `
+            </div>
+
+            <div class="page-break"></div>
+
+            <div class="print-section-title" style="margin-top: 20px;">CZĘŚĆ 2: ZESTAWIENIE DOCIĘCIA BELEK DREWNIANYCH (WARIANTY A1 - F1)</div>
+            <table class="print-table" style="margin-top: 8px;">
+                <thead>
+                    <tr>
+                        <th>Wariant</th>
+                        <th>Typ Główny</th>
+                        <th>Dł. Osiowa (mm)</th>
+                        <th>Dł. Docięcia (mm)</th>
+                        <th>Zacięcie Lewe</th>
+                        <th>Zacięcie Prawe</th>
+                        <th>Ilość Sztuk</th>
+                        <th>Suma Metrów</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        Object.values(domeData.summaryByStrutVariant).forEach(v => {
+            html += `
+                <tr>
+                    <td><strong>${v.variantCode}</strong></td>
+                    <td>${v.baseType}</td>
+                    <td>${v.centerLenMm} mm</td>
+                    <td><strong>${v.cutLenMm} mm</strong></td>
+                    <td>${v.miterLeftDeg.toFixed(1)}°</td>
+                    <td>${v.miterRightDeg.toFixed(1)}°</td>
+                    <td><strong>${v.count} szt.</strong></td>
+                    <td>${v.totalMeterage} m</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+                <tfoot>
+                    <tr style="font-weight: bold; background: #eee;">
+                        <td colspan="6" style="text-align: right;">ŁĄCZNIE WSZYSTKIE BELKI:</td>
+                        <td>${totalStruts} szt.</td>
+                        <td>${totalMeterage.toFixed(2)} m</td>
+                    </tr>
+                </tfoot>
+            </table>
+        `;
+
+        container.innerHTML = html;
+    }
+
     function exportToCSV() {
         if (!currentDomeData) return;
 
@@ -245,6 +477,43 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
         document.body.removeChild(link);
     }
+
+    // Obsługa zakładek w dolnej sekcji (Zestawienie vs Karty Trasowania Węzłów)
+    const bottomTabSummary = document.getElementById('bottom-tab-summary');
+    const bottomTabNodeCards = document.getElementById('bottom-tab-node-cards');
+    const bottomViewSummary = document.getElementById('bottom-view-summary');
+    const bottomViewNodeCards = document.getElementById('bottom-view-node-cards');
+
+    if (bottomTabSummary && bottomTabNodeCards) {
+        bottomTabSummary.addEventListener('click', () => {
+            bottomViewSummary.style.display = 'grid';
+            bottomViewNodeCards.style.display = 'none';
+            bottomTabSummary.style.background = 'rgba(0,209,178,0.2)';
+            bottomTabSummary.style.borderColor = 'var(--primary)';
+            bottomTabSummary.style.color = '#ffffff';
+            bottomTabNodeCards.style.background = '#10161f';
+            bottomTabNodeCards.style.borderColor = 'var(--panel-border)';
+            bottomTabNodeCards.style.color = 'var(--text-muted)';
+        });
+
+        bottomTabNodeCards.addEventListener('click', () => {
+            bottomViewSummary.style.display = 'none';
+            bottomViewNodeCards.style.display = 'flex';
+            bottomTabNodeCards.style.background = 'rgba(0,209,178,0.2)';
+            bottomTabNodeCards.style.borderColor = 'var(--primary)';
+            bottomTabNodeCards.style.color = '#ffffff';
+            bottomTabSummary.style.background = '#10161f';
+            bottomTabSummary.style.borderColor = 'var(--panel-border)';
+            bottomTabSummary.style.color = 'var(--text-muted)';
+        });
+    }
+
+    const handlePrint = () => {
+        if (currentDomeData) {
+            generatePrintReport(currentDomeData);
+        }
+        window.print();
+    };
 
     btnRecalculate.addEventListener('click', updateApp);
     selectMode.addEventListener('change', () => {
@@ -295,7 +564,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (btnExportCSV) btnExportCSV.addEventListener('click', exportToCSV);
-    if (btnPrint) btnPrint.addEventListener('click', () => window.print());
+    if (btnPrint) btnPrint.addEventListener('click', handlePrint);
+
+    const btnPrintWorkshop = document.getElementById('btn-print-workshop');
+    if (btnPrintWorkshop) btnPrintWorkshop.addEventListener('click', handlePrint);
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js?v=20260901_v5').then(() => {
