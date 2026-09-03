@@ -140,18 +140,39 @@
             <div id="canvas-3d-container"></div>
         </main>
 
-        <!-- Panel Prawy: Inspektor Wybranego Węzła -->
+        <!-- Panel Prawy: Inspektor Wybranego Elementu (Węzeł / Belka) -->
         <aside class="panel panel-right">
-            <div class="panel-title">🔍 Inspektor Wybranego Węzła</div>
-
-            <!-- Schemat Węzła 2D: Rozmieszczenie Otworów i Kąty Między Belkami -->
-            <div class="canvas-2d-wrapper">
-                <span style="font-size: 12px; color: var(--primary); font-weight:bold;">📐 Kąty Otworów i Belki (Widok z Góry)</span>
-                <canvas id="canvas-2d" width="380" height="360" style="width: 100%; height: auto; display: block; border-radius: 6px;"></canvas>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--panel-border); padding-bottom: 8px;">
+                <div class="panel-title" id="inspector-panel-title" style="border: none; padding: 0; margin: 0; font-size: 13px;">🔍 Inspektor Elementu</div>
+                <div class="inspector-tabs" style="display: flex; gap: 4px;">
+                    <button id="tab-btn-node" type="button" style="padding: 4px 10px; font-size: 11px; font-weight: bold; border-radius: 4px; border: 1px solid var(--primary); background: rgba(0,209,178,0.2); color: #ffffff; cursor: pointer; transition: 0.2s;">🔘 Węzeł</button>
+                    <button id="tab-btn-strut" type="button" style="padding: 4px 10px; font-size: 11px; font-weight: bold; border-radius: 4px; border: 1px solid var(--panel-border); background: #10161f; color: var(--text-muted); cursor: pointer; transition: 0.2s;">🪵 Belka</button>
+                </div>
             </div>
 
-            <!-- Tabela Szczegółów Węzła -->
-            <div id="node-detail-content"></div>
+            <!-- Sekcja Inspektora Węzła -->
+            <div id="inspector-node-view" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Schemat Węzła 2D: Rozmieszczenie Otworów i Kąty Między Belkami -->
+                <div class="canvas-2d-wrapper">
+                    <span style="font-size: 12px; color: var(--primary); font-weight:bold;">📐 Kąty Otworów i Belki (Widok z Góry)</span>
+                    <canvas id="canvas-2d" width="380" height="340" style="width: 100%; height: auto; display: block; border-radius: 6px;"></canvas>
+                </div>
+
+                <!-- Tabela Szczegółów Węzła -->
+                <div id="node-detail-content"></div>
+            </div>
+
+            <!-- Sekcja Inspektora Belki -->
+            <div id="inspector-strut-view" style="display: none; flex-direction: column; gap: 12px;">
+                <!-- Rysunek Techniczny Docięcia Belki (Kąty Ścięcia Czołowego) -->
+                <div class="canvas-2d-wrapper">
+                    <span style="font-size: 12px; color: var(--primary); font-weight:bold;">🪵 Profil Cięcia Belki (Kąty Ścięcia Czołowego)</span>
+                    <canvas id="canvas-strut-2d" width="380" height="250" style="width: 100%; height: auto; display: block; border-radius: 6px;"></canvas>
+                </div>
+
+                <!-- Karta Szczegółów Belki -->
+                <div id="strut-detail-content"></div>
+            </div>
         </aside>
 
     </div>

@@ -16,9 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         onStrutSelect: (edgeData) => {
-            const v1Node = currentDomeData.vertices[edgeData.v1];
-            inspector.renderNode(v1Node, currentDomeData);
-            threeApp.highlightStrutVariant(edgeData.variantCode);
+            if (currentDomeData) {
+                inspector.renderStrut(edgeData, currentDomeData);
+                threeApp.highlightStrutVariant(edgeData.variantCode);
+            }
         }
     });
 
@@ -149,6 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
             row.addEventListener('click', () => {
                 const code = row.getAttribute('data-code');
                 threeApp.highlightStrutVariant(code);
+                const sampleEdge = domeData.edges.find(e => e.variantCode === code || e.strutType === code);
+                if (sampleEdge) {
+                    inspector.renderStrut(sampleEdge, domeData);
+                }
             });
         });
     }

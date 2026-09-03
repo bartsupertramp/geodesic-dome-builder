@@ -196,79 +196,55 @@ class ThreeApp {
     }
 
     /**
-     * Generuje precyzyjną geometrię belki drewnianej z zacięciami kątowymi pod ukośnicę (Miter Cuts)
-     * oraz dopasowaniem do cylindra rury stalowej i kąta wypukłości czaszy (Pitch Angle).
+     * Generuje geometrię belki drewnianej z pojedynczym płaskim ścięciem czołowym (Single Bevel Cut)
+     * pod kątem wypukłości czaszy (Pitch Angle), dopasowanym do rury stalowej i płaszczyzny poszycia.
      */
     createMiteredStrutGeometry(timberW, timberH, fullLen, pipeRadius, v1Detail, v2Detail, edgeId) {
         const halfW = timberW / 2;
         const halfH = timberH / 2;
         const halfL = fullLen / 2;
 
-        const s1 = v1Detail?.struts?.find(s => s.edgeId === edgeId);
-        const s2 = v2Detail?.struts?.find(s => s.edgeId === edgeId);
-
-        const deltaL1 = ((s1?.deltaLeftDeg || 72) * Math.PI) / 180;
-        const deltaR1 = ((s1?.deltaRightDeg || 72) * Math.PI) / 180;
         const pitch1 = ((v1Detail?.pitchAngleDeg || 7.27) * Math.PI) / 180;
-
-        const deltaL2 = ((s2?.deltaLeftDeg || 72) * Math.PI) / 180;
-        const deltaR2 = ((s2?.deltaRightDeg || 72) * Math.PI) / 180;
         const pitch2 = ((v2Detail?.pitchAngleDeg || 7.27) * Math.PI) / 180;
 
-        function calcZ1(x, y) {
-            // Rura walcowa o promieniu pipeRadius na osi Z = -halfL
-            // Czoło belki na bocznej pozycji x dotyka walca na odległości rCyl od osi rury:
-            const rCyl = Math.sqrt(Math.max(0, pipeRadius * pipeRadius - x * x));
-            // Kąt ugięcia sferycznego czaszy (pitch angle)
-            const pitchOffset = y * Math.sin(pitch1);
-            // Czoło belki obejmuje rurę (wklęsły kielich otaczający pierścień):
-            return -halfL + rCyl - pitchOffset;
+        // Pojedyncze płaskie ścięcie czołowe pod kątem wypukłości czaszy (Pitch Angle):
+        function Z1(y) {
+            return -halfL + pipeRadius - y * Math.tan(pitch1);
         }
 
-        function calcZ2(x, y) {
-            // Analogicznie na drugim końcu przy Z = +halfL:
-            const rCyl = Math.sqrt(Math.max(0, pipeRadius * pipeRadius - x * x));
-            const pitchOffset = y * Math.sin(pitch2);
-            return halfL - rCyl + pitchOffset;
+        function Z2(y) {
+            return halfL - pipeRadius + y * Math.tan(pitch2);
         }
 
-        // 12 wierzchołków
+        // 8 wierzchołków
         const positions = [
             // End 1 (v1, -Z):
-            -halfW,  halfH, calcZ1(-halfW,  halfH), // 0: -X, +Y
-                 0,  halfH, calcZ1(     0,  halfH), // 1:  0, +Y
-             halfW,  halfH, calcZ1( halfW,  halfH), // 2: +X, +Y
-            -halfW, -halfH, calcZ1(-halfW, -halfH), // 3: -X, -Y
-                 0, -halfH, calcZ1(     0, -halfH), // 4:  0, -Y
-             halfW, -halfH, calcZ1( halfW, -halfH), // 5: +X, -Y
+            -halfW,  halfH, Z1( halfH), // 0: TL
+             halfW,  halfH, Z1( halfH), // 1: TR
+             halfW, -halfH, Z1(-halfH), // 2: BR
+            -halfW, -halfH, Z1(-halfH), // 3: BL
 
             // End 2 (v2, +Z):
-            -halfW,  halfH, calcZ2(-halfW,  halfH), // 6: -X, +Y
-                 0,  halfH, calcZ2(     0,  halfH), // 7:  0, +Y
-             halfW,  halfH, calcZ2( halfW,  halfH), // 8: +X, +Y
-            -halfW, -halfH, calcZ2(-halfW, -halfH), // 9: -X, -Y
-                 0, -halfH, calcZ2(     0, -halfH), // 10: 0, -Y
-             halfW, -halfH, calcZ2( halfW, -halfH)  // 11: +X, -Y
+            -halfW,  halfH, Z2( halfH), // 4: TL
+             halfW,  halfH, Z2( halfH), // 5: TR
+             halfW, -halfH, Z2(-halfH), // 6: BR
+            -halfW, -halfH, Z2(-halfH)  // 7: BL
         ];
 
-        // 20 trójkątów z zachowaniem orientacji CCW (na zewnątrz)
+        // 12 trójkątów z orientacją na zewnątrz (CCW)
         const indices = [
             // Top (+Y):
-            0, 6, 7,   0, 7, 1,
-            1, 7, 8,   1, 8, 2,
+            0, 4, 5,   0, 5, 1,
             // Bottom (-Y):
-            3, 4, 10,  3, 10, 9,
-            4, 5, 11,  4, 11, 10,
-            // -X Side Face:
-            0, 3, 9,   0, 9, 6,
-            // +X Side Face:
-            2, 8, 11,  2, 11, 5,
+            2, 6, 7,   2, 7, 3,
+            // -X Side Face (Left):
+            0, 3, 7,   0, 7, 4,
+            // +X Side Face (Right):
+            1, 5, 6,   1, 6, 2,
             // End 1 (-Z):
-            0, 1, 4,   0, 4, 3,
-            1, 2, 5,   1, 5, 4,
+            0, 1, 2,   0, 2, 3,
             // End 2 (+Z):
-            7, 6, 9,   7, 9, 10,
-            8, 7, 10,  8, 10, 11
+            4, 7, 6,   4, 6, 5
         ];
 
         const geo = new THREE.BufferGeometry();

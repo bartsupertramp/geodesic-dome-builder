@@ -10,6 +10,62 @@ class NodeInspector {
         const containerId = detailContainerId || detailContainerIdOrProfile;
         this.detailContainer = document.getElementById(containerId);
         this.drillingMode = 'SPHERICAL'; // 'SPHERICAL' (Precyzyjne 3D dla stali) lub 'UNIFORM'
+
+        this.activeTab = 'node';
+        this.initTabs();
+    }
+
+    initTabs() {
+        this.nodeView = document.getElementById('inspector-node-view');
+        this.strutView = document.getElementById('inspector-strut-view');
+        this.tabBtnNode = document.getElementById('tab-btn-node');
+        this.tabBtnStrut = document.getElementById('tab-btn-strut');
+        this.canvasStrut2d = document.getElementById('canvas-strut-2d');
+        this.ctxStrut2d = this.canvasStrut2d ? this.canvasStrut2d.getContext('2d') : null;
+        this.strutDetailContainer = document.getElementById('strut-detail-content');
+
+        if (this.tabBtnNode) {
+            this.tabBtnNode.addEventListener('click', () => this.setTab('node'));
+        }
+        if (this.tabBtnStrut) {
+            this.tabBtnStrut.addEventListener('click', () => this.setTab('strut'));
+        }
+    }
+
+    setTab(tabName) {
+        this.activeTab = tabName;
+        if (!this.nodeView) this.nodeView = document.getElementById('inspector-node-view');
+        if (!this.strutView) this.strutView = document.getElementById('inspector-strut-view');
+        if (!this.tabBtnNode) this.tabBtnNode = document.getElementById('tab-btn-node');
+        if (!this.tabBtnStrut) this.tabBtnStrut = document.getElementById('tab-btn-strut');
+
+        if (tabName === 'node') {
+            if (this.nodeView) this.nodeView.style.display = 'flex';
+            if (this.strutView) this.strutView.style.display = 'none';
+            if (this.tabBtnNode) {
+                this.tabBtnNode.style.background = 'rgba(0,209,178,0.2)';
+                this.tabBtnNode.style.borderColor = 'var(--primary)';
+                this.tabBtnNode.style.color = '#ffffff';
+            }
+            if (this.tabBtnStrut) {
+                this.tabBtnStrut.style.background = '#10161f';
+                this.tabBtnStrut.style.borderColor = 'var(--panel-border)';
+                this.tabBtnStrut.style.color = 'var(--text-muted)';
+            }
+        } else if (tabName === 'strut') {
+            if (this.nodeView) this.nodeView.style.display = 'none';
+            if (this.strutView) this.strutView.style.display = 'flex';
+            if (this.tabBtnStrut) {
+                this.tabBtnStrut.style.background = 'rgba(0,209,178,0.2)';
+                this.tabBtnStrut.style.borderColor = 'var(--primary)';
+                this.tabBtnStrut.style.color = '#ffffff';
+            }
+            if (this.tabBtnNode) {
+                this.tabBtnNode.style.background = '#10161f';
+                this.tabBtnNode.style.borderColor = 'var(--panel-border)';
+                this.tabBtnNode.style.color = 'var(--text-muted)';
+            }
+        }
     }
 
     setDrillingMode(mode) {
@@ -23,11 +79,22 @@ class NodeInspector {
         this.currentNodeData = nodeData;
         this.currentFullDomeData = fullDomeData;
 
+        this.setTab('node');
+
         const detail = fullDomeData.nodeDetails[nodeData.id];
         if (!detail) return;
 
         this.draw2dHub(detail, fullDomeData);
         this.renderTable(detail, fullDomeData);
+    }
+
+    renderStrut(edgeData, fullDomeData) {
+        this.currentEdgeData = edgeData;
+        this.currentFullDomeData = fullDomeData;
+
+        this.setTab('strut');
+        this.drawStrutCutProfile(edgeData, fullDomeData);
+        this.renderStrutCard(edgeData, fullDomeData);
     }
 
     /**
@@ -304,6 +371,192 @@ class NodeInspector {
         `;
 
         this.detailContainer.innerHTML = html;
+    }
+
+    /**
+     * Rysuje profil techniczny docięcia pojedynczej belki (Widok Boczny z Kątami Wypukłości Czaszy)
+     */
+    drawStrutCutProfile(edge, fullDomeData) {
+        if (!this.ctxStrut2d) {
+            this.canvasStrut2d = document.getElementById('canvas-strut-2d');
+            this.ctxStrut2d = this.canvasStrut2d ? this.canvasStrut2d.getContext('2d') : null;
+        }
+        if (!this.ctxStrut2d) return;
+
+        const ctx = this.ctxStrut2d;
+        const width = this.canvasStrut2d.width;
+        const height = this.canvasStrut2d.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Ciemne tło
+        ctx.fillStyle = '#10161f';
+        ctx.fillRect(0, 0, width, height);
+
+        const v1 = fullDomeData.vertices[edge.v1];
+        const v2 = fullDomeData.vertices[edge.v2];
+        const pitch1 = v1 ? v1.pitchAngleDeg : 7.27;
+        const pitch2 = v2 ? v2.pitchAngleDeg : 7.27;
+
+        const timberH = (fullDomeData.timberHMm || 45);
+        const cutLenMm = (edge.cutLen * 1000);
+        const centerLenMm = (edge.centerLen * 1000);
+
+        const bevel1Mm = (timberH / 2) * Math.tan((pitch1 * Math.PI) / 180);
+        const bevel2Mm = (timberH / 2) * Math.tan((pitch2 * Math.PI) / 180);
+        const topLenMm = cutLenMm + bevel1Mm + bevel2Mm;
+        const bottomLenMm = cutLenMm - bevel1Mm - bevel2Mm;
+
+        // Rysowanie profilu bocznego belki w proporcjach
+        const beamW = width * 0.65;
+        const beamH = 42;
+        const startX = (width - beamW) / 2;
+        const centerY = height * 0.50;
+
+        const topY = centerY - beamH / 2;
+        const botY = centerY + beamH / 2;
+
+        // Przelicz ścięcia w pikselach
+        const bevPx1 = Math.max(8, beamH * Math.tan((pitch1 * Math.PI) / 180));
+        const bevPx2 = Math.max(8, beamH * Math.tan((pitch2 * Math.PI) / 180));
+
+        const p_TL = [startX - bevPx1 / 2, topY];
+        const p_BL = [startX + bevPx1 / 2, botY];
+        const p_TR = [startX + beamW + bevPx2 / 2, topY];
+        const p_BR = [startX + beamW - bevPx2 / 2, botY];
+
+        // Ciało belki (drewno)
+        ctx.beginPath();
+        ctx.moveTo(p_TL[0], p_TL[1]);
+        ctx.lineTo(p_TR[0], p_TR[1]);
+        ctx.lineTo(p_BR[0], p_BR[1]);
+        ctx.lineTo(p_BL[0], p_BL[1]);
+        ctx.closePath();
+
+        const grad = ctx.createLinearGradient(0, topY, 0, botY);
+        grad.addColorStop(0, edge.color || '#C19A6B');
+        grad.addColorStop(1, '#8B5A2B');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        // Oś środkowa (przerywana linia trasowania)
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(startX - 22, centerY);
+        ctx.lineTo(startX + beamW + 22, centerY);
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Otwory montażowe pod śruby w osi belki
+        const hole1X = startX + 26;
+        const hole2X = startX + beamW - 26;
+        [hole1X, hole2X].forEach(hx => {
+            ctx.beginPath();
+            ctx.arc(hx, centerY, 5.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#10161f';
+            ctx.fill();
+            ctx.strokeStyle = '#00d1b2';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(hx, centerY, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff4136';
+            ctx.fill();
+        });
+
+        // Wymiar górny (pod poszycie)
+        ctx.fillStyle = '#00d1b2';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`▲ GÓRA (Pod Poszycie): ${topLenMm.toFixed(1)} mm`, width / 2, topY - 14);
+
+        // Wymiar środkowy (oś docięcia)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`OŚ DOCIĘCIA: ${cutLenMm.toFixed(1)} mm`, width / 2, centerY + 4);
+
+        // Wymiar dolny (wnętrze kopuły)
+        ctx.fillStyle = '#ffd166';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`▼ DÓŁ (Wnętrze Kopuły): ${bottomLenMm.toFixed(1)} mm`, width / 2, botY + 22);
+
+        // Etykiety i kąty ścięcia na końcach
+        // Koniec 1 (Lewy)
+        ctx.fillStyle = '#a0aec0';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Koniec 1 ➔ Węzeł #${edge.v1 + 1} (${v1 ? v1.nodeTypeCode : 'W'})`, 10, 18);
+        ctx.fillStyle = '#ff3860';
+        ctx.fillText(`Kąt ścięcia: ${pitch1.toFixed(2)}°`, 10, 32);
+
+        // Koniec 2 (Prawy)
+        ctx.fillStyle = '#a0aec0';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Koniec 2 ➔ Węzeł #${edge.v2 + 1} (${v2 ? v2.nodeTypeCode : 'W'})`, width - 10, 18);
+        ctx.fillStyle = '#ff3860';
+        ctx.fillText(`Kąt ścięcia: ${pitch2.toFixed(2)}°`, width - 10, 32);
+
+        // Kąty zacięć ukośnicy na dole rysunku
+        ctx.fillStyle = '#a0aec0';
+        ctx.textAlign = 'center';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`Zacięcia ciesielskie pod ukośnicę: Lewe ${edge.miterLeftDeg.toFixed(1)}° / Prawe ${edge.miterRightDeg.toFixed(1)}°`, width / 2, height - 10);
+    }
+
+    /**
+     * Karta szczegółowych parametrów wybranej belki
+     */
+    renderStrutCard(edge, fullDomeData) {
+        if (!this.strutDetailContainer) {
+            this.strutDetailContainer = document.getElementById('strut-detail-content');
+        }
+        if (!this.strutDetailContainer) return;
+
+        const v1 = fullDomeData.vertices[edge.v1];
+        const v2 = fullDomeData.vertices[edge.v2];
+        const pitch1 = v1 ? v1.pitchAngleDeg : 7.27;
+        const pitch2 = v2 ? v2.pitchAngleDeg : 7.27;
+
+        const timberH = (fullDomeData.timberHMm || 45);
+        const timberW = (fullDomeData.timberWMm || 45);
+        const cutLenMm = (edge.cutLen * 1000);
+        const centerLenMm = (edge.centerLen * 1000);
+
+        const bevel1Mm = (timberH / 2) * Math.tan((pitch1 * Math.PI) / 180);
+        const bevel2Mm = (timberH / 2) * Math.tan((pitch2 * Math.PI) / 180);
+        const topLenMm = cutLenMm + bevel1Mm + bevel2Mm;
+        const bottomLenMm = cutLenMm - bevel1Mm - bevel2Mm;
+
+        let html = `
+            <div class="node-summary-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="strut-tag" style="background-color: ${edge.color || '#FF4136'}; font-size: 13px; padding: 4px 10px;">
+                        BELKA #${edge.id + 1} (${edge.variantCode || edge.strutType})
+                    </span>
+                    <span style="font-size: 11px; color: var(--text-muted);">Typ Geometrii: ${edge.strutType}</span>
+                </div>
+                <div class="node-stats">
+                    <div><span>Węzeł 1:</span> <strong style="color:#00d1b2;">#${edge.v1 + 1} (${v1 ? v1.nodeTypeCode : 'W'})</strong></div>
+                    <div><span>Węzeł 2:</span> <strong style="color:#00d1b2;">#${edge.v2 + 1} (${v2 ? v2.nodeTypeCode : 'W'})</strong></div>
+                    <div><span>Długość Osiowa:</span> <strong>${centerLenMm.toFixed(1)} mm</strong></div>
+                    <div><span>Dł. Docięcia (Oś):</span> <strong style="color:#00d1b2; font-size: 13px;">${cutLenMm.toFixed(1)} mm</strong></div>
+                    <div><span>Dł. Góra (Poszycie):</span> <strong>${topLenMm.toFixed(1)} mm</strong></div>
+                    <div><span>Dł. Dół (Wnętrze):</span> <strong>${bottomLenMm.toFixed(1)} mm</strong></div>
+                    <div><span>Ścięcie Koniec 1:</span> <strong>${pitch1.toFixed(2)}°</strong></div>
+                    <div><span>Ścięcie Koniec 2:</span> <strong>${pitch2.toFixed(2)}°</strong></div>
+                    <div><span>Zacięcie Ukośnicy:</span> <strong>${edge.miterLeftDeg.toFixed(1)}° / ${edge.miterRightDeg.toFixed(1)}°</strong></div>
+                    <div><span>Przekrój Drewna:</span> <strong>${timberW} x ${timberH} mm</strong></div>
+                </div>
+            </div>
+        `;
+
+        this.strutDetailContainer.innerHTML = html;
     }
 }
 
