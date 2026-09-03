@@ -169,11 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <table class="cut-table full-width">
                 <thead>
                     <tr>
-                        <th>Kod</th>
+                        <th style="width: 48px;">Kod</th>
                         <th>Opis Rodzaju Węzła</th>
+                        <th style="color: #00d1b2;">Kąty Otworów (Krok Δ)</th>
                         <th>Układ Belek</th>
-                        <th>Ramiona</th>
-                        <th>Liczba Sztuk</th>
+                        <th style="width: 70px;">Sztuk</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -182,13 +182,26 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.values(domeData.summaryByNodeType).forEach(nt => {
             totalNodes += nt.count;
 
+            const sampleId = nt.nodeIds[0];
+            const detail = domeData.nodeDetails[sampleId];
+            let angleSummary = '';
+            if (detail && detail.struts) {
+                const angles = detail.struts.map(s => s.deltaLeftDeg.toFixed(1) + '°');
+                const isUniform = angles.every(a => a === angles[0]);
+                if (isUniform) {
+                    angleSummary = `<span style="color: #00d1b2; font-weight: bold; font-size: 11px;">${angles.length}× ${angles[0]}</span>`;
+                } else {
+                    angleSummary = `<span style="font-size: 10.5px; color: #ffd166; font-weight: 600;">${angles.join(' • ')}</span>`;
+                }
+            }
+
             html += `
                 <tr class="node-type-row" data-code="${nt.code}" style="cursor:pointer;" title="Kliknij, aby podświetlić węzły ${nt.code} na modelu 3D">
                     <td><span class="strut-tag" style="background-color:${nt.color}">${nt.code}</span></td>
                     <td><strong>${nt.description}</strong></td>
+                    <td>${angleSummary}</td>
                     <td><code>${nt.strutPattern}</code></td>
-                    <td>${nt.valency} ramion</td>
-                    <td><strong style="color:#00d1b2; font-size:14px;">${nt.count} szt.</strong></td>
+                    <td><strong style="color:#00d1b2; font-size:13px;">${nt.count} szt.</strong></td>
                 </tr>
             `;
         });
@@ -198,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tfoot>
                     <tr class="table-total">
                         <td colspan="4"><strong>SUMA WSZYSTKICH WĘZŁÓW:</strong></td>
-                        <td><strong style="font-size:15px; color:#00d1b2;">${totalNodes} szt.</strong></td>
+                        <td><strong style="font-size:14px; color:#00d1b2;">${totalNodes} szt.</strong></td>
                     </tr>
                 </tfoot>
             </table>
@@ -563,6 +576,72 @@ document.addEventListener('DOMContentLoaded', () => {
             bottomTabSummary.style.borderColor = 'var(--panel-border)';
             bottomTabSummary.style.color = 'var(--text-muted)';
         });
+    }
+
+    // Obsługa zmiany wysokości dolnego panelu (Suwak + Przeciąganie myszą)
+    const bottomDrawer = document.getElementById('bottom-drawer');
+    const bottomDrawerResizer = document.getElementById('bottom-drawer-resizer');
+    const sliderDrawerHeight = document.getElementById('slider-drawer-height');
+
+    function setDrawerHeight(h) {
+        const clampedH = Math.max(130, Math.min(window.innerHeight * 0.85, h));
+        if (bottomDrawer) {
+            bottomDrawer.style.height = `${clampedH}px`;
+        }
+        if (sliderDrawerHeight && parseInt(sliderDrawerHeight.value) !== Math.round(clampedH)) {
+            sliderDrawerHeight.value = Math.round(clampedH);
+        }
+        if (threeApp && threeApp.onWindowResize) {
+            threeApp.onWindowResize();
+        }
+    }
+
+    if (sliderDrawerHeight) {
+        sliderDrawerHeight.addEventListener('input', (e) => {
+            setDrawerHeight(parseFloat(e.target.value));
+        });
+    }
+
+    if (bottomDrawerResizer && bottomDrawer) {
+        let isDragging = false;
+        let startY = 0;
+        let startH = 0;
+
+        const onMouseDown = (e) => {
+            isDragging = true;
+            startY = e.clientY || (e.touches && e.touches[0].clientY);
+            startH = bottomDrawer.getBoundingClientRect().height;
+            bottomDrawerResizer.classList.add('dragging');
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'ns-resize';
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            window.addEventListener('touchmove', onMouseMove);
+            window.addEventListener('touchend', onMouseUp);
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const deltaY = startY - clientY;
+            setDrawerHeight(startH + deltaY);
+        };
+
+        const onMouseUp = () => {
+            if (isDragging) {
+                isDragging = false;
+                bottomDrawerResizer.classList.remove('dragging');
+                document.body.style.userSelect = '';
+                document.body.style.cursor = '';
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+                window.removeEventListener('touchmove', onMouseMove);
+                window.removeEventListener('touchend', onMouseUp);
+            }
+        };
+
+        bottomDrawerResizer.addEventListener('mousedown', onMouseDown);
+        bottomDrawerResizer.addEventListener('touchstart', onMouseDown, { passive: true });
     }
 
     const handleDownloadPDF = () => {
