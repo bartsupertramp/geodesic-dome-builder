@@ -295,13 +295,23 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = html;
     }
 
-    function generatePrintReport(domeData) {
-        const container = document.getElementById('print-workshop-report');
-        if (!container || !domeData) return;
+    function exportToPDF(domeData) {
+        if (!domeData) return;
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            alert('Biblioteka PDF jest jeszcze ładowana. Spróbuj ponownie za chwilę.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
 
         const pipeOD = domeData.pipeODMm || 110;
         const circMm = Math.PI * pipeOD;
-        const dateStr = new Date().toLocaleDateString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const dateStr = new Date().toLocaleDateString('pl-PL');
 
         let totalNodes = 0;
         Object.values(domeData.summaryByNodeType).forEach(nt => totalNodes += nt.count);
@@ -313,141 +323,188 @@ document.addEventListener('DOMContentLoaded', () => {
             totalMeterage += parseFloat(v.totalMeterage);
         });
 
-        let html = `
-            <div class="print-report-header">
-                <div>
-                    <div class="print-report-title">📐 KOPUŁA GEODEZYJNA ${domeData.frequency}V – KARTY WARSZTATOWE</div>
-                    <div style="font-size: 9pt; color: #555;">DOKUMENTACJA WYKONAWCZA: TRASOWANIE ŁĄCZNIKÓW ZE STALOWEJ RURY I ZESTAWIENIE CIĘĆ BELEK</div>
-                </div>
-                <div style="text-align: right; font-size: 8.5pt; color: #555;">
-                    <div>Data wydruku: ${dateStr}</div>
-                    <div>Geodesic Dome Builder</div>
-                </div>
-            </div>
+        // 1. Tytuł i Nagłówek Dokumentu
+        doc.setFillColor(16, 22, 31);
+        doc.rect(0, 0, 210, 24, 'F');
 
-            <div class="print-params-grid">
-                <div><strong>Promień kopuły (R):</strong> ${domeData.radius} m</div>
-                <div><strong>Rura stalowa OD:</strong> ${pipeOD} mm (Obwód: ${circMm.toFixed(1)} mm)</div>
-                <div><strong>Przekrój drewna:</strong> ${domeData.timberWMm} x ${domeData.timberHMm} mm</div>
-                <div><strong>Suma elementów:</strong> ${totalNodes} węzłów / ${totalStruts} belek (${totalMeterage.toFixed(1)} m)</div>
-            </div>
+        doc.setTextColor(0, 209, 178);
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`KOPULA GEODEZYJNA ${domeData.frequency}V - KARTY TRASOWANIA WEZLOW`, 14, 11);
 
-            <div class="print-section-title">CZĘŚĆ 1: KARTY TRASOWANIA OTWORÓW W RURACH STALOWYCH (WĘZŁY W1 - W7)</div>
-            <div style="font-size: 8pt; color: #444; margin-bottom: 8px;">
-                Instrukcja trasowania: Otwory trasować taśmą mierniczą po zewnętrznym obwodzie rury stalowej ($C = ${circMm.toFixed(1)}\\text{ mm}$) od Otworu #1 ($0.0\\text{ mm}$) w kierunku przeciwnym do ruchu wskazówek zegara (CCW).
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        `;
+        doc.setTextColor(200, 210, 220);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Dokumentacja warsztatowa: Trasowanie otworow w rurze stalowej (OD ${pipeOD} mm) | Data: ${dateStr}`, 14, 18);
 
-        Object.values(domeData.summaryByNodeType).forEach(nt => {
+        // Parametry projektu w ramce
+        doc.setFillColor(245, 247, 250);
+        doc.setDrawColor(200, 210, 225);
+        doc.roundedRect(14, 28, 182, 16, 2, 2, 'FD');
+
+        doc.setTextColor(30, 40, 55);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Promien kopuly (R): ${domeData.radius} m`, 18, 34);
+        doc.text(`Rura stalowa: OD ${pipeOD} mm (Obwod: ${circMm.toFixed(1)} mm)`, 75, 34);
+        doc.text(`Przekroj drewna: ${domeData.timberWMm} x ${domeData.timberHMm} mm`, 145, 34);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Laczna liczba wezlow: ${totalNodes} szt.`, 18, 40);
+        doc.text(`Laczna liczba belek: ${totalStruts} szt. (${totalMeterage.toFixed(1)} m)`, 75, 40);
+        doc.text(`Czestotliwosc: ${domeData.frequency}V (4/8)`, 145, 40);
+
+        let currentY = 48;
+
+        // Sekcja 1: Karty trasowania węzłów W1 - W7
+        doc.setTextColor(15, 25, 35);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('1. KARTY TRASOWANIA OTWOROW W PIERSCIENIACH ZE STALI (W1 - W7)', 14, currentY);
+        currentY += 4;
+
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(90, 100, 115);
+        doc.text(`Wymiary mierzone tasma traserska po obwodzie zewnetrznym rury (C = ${circMm.toFixed(1)} mm) od Otworu #1 (0.0 mm) w kierunku CCW.`, 14, currentY);
+        currentY += 4;
+
+        Object.values(domeData.summaryByNodeType).forEach((nt) => {
             const sampleId = nt.nodeIds[0];
             const detail = domeData.nodeDetails[sampleId];
             if (!detail || !detail.struts) return;
 
             const baseAz = detail.struts[0].azimuthDeg;
 
-            html += `
-                <div class="print-node-card">
-                    <div class="print-node-card-header">
-                        <div>WĘZEŁ ${nt.code} – ${nt.description}</div>
-                        <div>ILOŚĆ: ${nt.count} SZT.</div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 8pt; margin-bottom: 4px; color: #333;">
-                        <span>Wypukłość (Pitch): <strong>${detail.pitchAngleDeg.toFixed(2)}°</strong></span>
-                        <span>Wzór belek: <strong>${nt.strutPattern}</strong></span>
-                        <span>Ramiona: <strong>${nt.valency}</strong></span>
-                    </div>
-                    <table class="print-table">
-                        <thead>
-                            <tr>
-                                <th>Otwór</th>
-                                <th>Belka</th>
-                                <th>Azymut</th>
-                                <th>Krok Δ</th>
-                                <th>Obwód (od 0.0 mm)</th>
-                                <th>Dł. cięcia</th>
-                                <th>Zacięcia L/P</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
+            // Sprawdź czy zmieści się na stronie
+            if (currentY > 235) {
+                doc.addPage();
+                currentY = 16;
+            }
 
-            detail.struts.forEach((s, idx) => {
+            // Nagłówek węzła
+            doc.setFillColor(235, 240, 245);
+            doc.setDrawColor(180, 195, 210);
+            doc.rect(14, currentY, 182, 6.5, 'FD');
+
+            doc.setTextColor(20, 30, 45);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`WEZEL ${nt.code} - ${nt.description.toUpperCase()}  |  ILOSC: ${nt.count} SZT.`, 17, currentY + 4.5);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.text(`Wypuklosc (Pitch): ${detail.pitchAngleDeg.toFixed(2)} deg  |  Uklad: ${nt.strutPattern}`, 115, currentY + 4.5);
+
+            currentY += 6.5;
+
+            // Tabela otworów
+            const tableBody = detail.struts.map((s, idx) => {
                 const angleDeg = (s.azimuthDeg - baseAz + 360) % 360;
                 const arcPosMm = (angleDeg / 360.0) * circMm;
-                const miterStr = `${s.miterLeftDeg.toFixed(1)}°/${s.miterRightDeg.toFixed(1)}°`;
-
-                html += `
-                    <tr>
-                        <td><strong>#${idx + 1}</strong></td>
-                        <td><strong>${s.strutType}</strong></td>
-                        <td>${angleDeg.toFixed(1)}°</td>
-                        <td>${idx === 0 ? '0.0°' : `+${s.deltaLeftDeg.toFixed(1)}°`}</td>
-                        <td><strong>${arcPosMm.toFixed(1)} mm</strong></td>
-                        <td>${(s.cutLen * 1000).toFixed(0)} mm</td>
-                        <td style="font-size: 7.5pt;">${miterStr}</td>
-                    </tr>
-                `;
+                const deltaStr = idx === 0 ? '0.0 deg' : `+${s.deltaLeftDeg.toFixed(1)} deg`;
+                const miterStr = `${s.miterLeftDeg.toFixed(1)} / ${s.miterRightDeg.toFixed(1)} deg`;
+                return [
+                    `#${idx + 1}`,
+                    `Belka ${s.strutType} (#${s.edgeId + 1})`,
+                    `${angleDeg.toFixed(1)} deg`,
+                    deltaStr,
+                    `${arcPosMm.toFixed(1)} mm`,
+                    `${(s.cutLen * 1000).toFixed(0)} mm`,
+                    miterStr
+                ];
             });
 
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            doc.autoTable({
+                startY: currentY,
+                head: [['Otwor #', 'Belka', 'Azymut', 'Krok Delta', 'Wymiar na tasmie (od 0.0)', 'Dl. dociecia', 'Zaciecia L/P']],
+                body: tableBody,
+                theme: 'grid',
+                styles: {
+                    fontSize: 7.5,
+                    cellPadding: 1.2,
+                    halign: 'center',
+                    textColor: [30, 40, 50],
+                    lineColor: [200, 210, 220],
+                    lineWidth: 0.15
+                },
+                headStyles: {
+                    fillColor: [40, 50, 65],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 7.5
+                },
+                columnStyles: {
+                    4: { fontStyle: 'bold', textColor: [0, 130, 110] } // Wymiar na taśmie wyróżniony
+                },
+                margin: { left: 14, right: 14 }
+            });
+
+            currentY = doc.lastAutoTable.finalY + 6;
         });
 
-        html += `
-            </div>
+        // Sekcja 2: Lista Cięć Belek Drewnianych
+        doc.addPage();
+        currentY = 16;
 
-            <div class="page-break"></div>
+        doc.setTextColor(15, 25, 35);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('2. ZESTAWIENIE CIEC BELEK DREWNIANYCH (WARIANTY A1 - F1)', 14, currentY);
+        currentY += 6;
 
-            <div class="print-section-title" style="margin-top: 20px;">CZĘŚĆ 2: ZESTAWIENIE DOCIĘCIA BELEK DREWNIANYCH (WARIANTY A1 - F1)</div>
-            <table class="print-table" style="margin-top: 8px;">
-                <thead>
-                    <tr>
-                        <th>Wariant</th>
-                        <th>Typ Główny</th>
-                        <th>Dł. Osiowa (mm)</th>
-                        <th>Dł. Docięcia (mm)</th>
-                        <th>Zacięcie Lewe</th>
-                        <th>Zacięcie Prawe</th>
-                        <th>Ilość Sztuk</th>
-                        <th>Suma Metrów</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        const strutTableBody = Object.values(domeData.summaryByStrutVariant).map(v => [
+            v.variantCode,
+            v.baseType,
+            v.name,
+            `${v.centerLenMm} mm`,
+            `${v.cutLenMm} mm`,
+            `${v.miterLeftDeg.toFixed(1)} deg`,
+            `${v.miterRightDeg.toFixed(1)} deg`,
+            `${v.count} szt.`,
+            `${v.totalMeterage} m`
+        ]);
 
-        Object.values(domeData.summaryByStrutVariant).forEach(v => {
-            html += `
-                <tr>
-                    <td><strong>${v.variantCode}</strong></td>
-                    <td>${v.baseType}</td>
-                    <td>${v.centerLenMm} mm</td>
-                    <td><strong>${v.cutLenMm} mm</strong></td>
-                    <td>${v.miterLeftDeg.toFixed(1)}°</td>
-                    <td>${v.miterRightDeg.toFixed(1)}°</td>
-                    <td><strong>${v.count} szt.</strong></td>
-                    <td>${v.totalMeterage} m</td>
-                </tr>
-            `;
+        doc.autoTable({
+            startY: currentY,
+            head: [['Wariant', 'Typ', 'Nazwa', 'Dl. osiowa', 'Dl. dociecia', 'Zaciecie L', 'Zaciecie P', 'Ilosc', 'Metraz']],
+            body: strutTableBody,
+            theme: 'grid',
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                halign: 'center',
+                textColor: [30, 40, 50],
+                lineColor: [200, 210, 220],
+                lineWidth: 0.2
+            },
+            headStyles: {
+                fillColor: [40, 50, 65],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 8
+            },
+            foot: [['SUMA', '', '', '', '', '', '', `${totalStruts} szt.`, `${totalMeterage.toFixed(2)} m`]],
+            footStyles: {
+                fillColor: [230, 235, 245],
+                textColor: [20, 30, 50],
+                fontStyle: 'bold'
+            },
+            margin: { left: 14, right: 14 }
         });
 
-        html += `
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background: #eee;">
-                        <td colspan="6" style="text-align: right;">ŁĄCZNIE WSZYSTKIE BELKI:</td>
-                        <td>${totalStruts} szt.</td>
-                        <td>${totalMeterage.toFixed(2)} m</td>
-                    </tr>
-                </tfoot>
-            </table>
-        `;
+        // Dodaj numerację stron na dole
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(7.5);
+            doc.setTextColor(130, 140, 150);
+            doc.text(`Kopula Geodezyjna 4V (R=${domeData.radius}m, Rura OD ${pipeOD}mm)  |  Strona ${i} z ${pageCount}`, 105, 290, { align: 'center' });
+        }
 
-        container.innerHTML = html;
+        // Zapis pliku PDF
+        const fileName = `Karty_Trasowania_Wezlow_Kopula_${domeData.frequency}V_R${domeData.radius}m.pdf`;
+        doc.save(fileName);
     }
 
     function exportToCSV() {
@@ -508,11 +565,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const handlePrint = () => {
+    const handleDownloadPDF = () => {
         if (currentDomeData) {
-            generatePrintReport(currentDomeData);
+            exportToPDF(currentDomeData);
         }
-        window.print();
     };
 
     btnRecalculate.addEventListener('click', updateApp);
@@ -564,10 +620,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (btnExportCSV) btnExportCSV.addEventListener('click', exportToCSV);
-    if (btnPrint) btnPrint.addEventListener('click', handlePrint);
 
-    const btnPrintWorkshop = document.getElementById('btn-print-workshop');
-    if (btnPrintWorkshop) btnPrintWorkshop.addEventListener('click', handlePrint);
+    const btnExportPDF = document.getElementById('btn-export-pdf');
+    if (btnExportPDF) btnExportPDF.addEventListener('click', handleDownloadPDF);
+
+    const btnDownloadPdfNodes = document.getElementById('btn-download-pdf-nodes');
+    if (btnDownloadPdfNodes) btnDownloadPdfNodes.addEventListener('click', handleDownloadPDF);
+
+    const btnQuickPdf = document.getElementById('btn-quick-pdf');
+    if (btnQuickPdf) btnQuickPdf.addEventListener('click', handleDownloadPDF);
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js?v=20260901_v5').then(() => {

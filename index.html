@@ -13,6 +13,9 @@
     <!-- CDN Three.js i OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- CDN jsPDF & autoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -24,7 +27,7 @@
         </div>
         <div class="header-actions">
             <button id="btn-export-csv" class="btn btn-secondary">📥 Pobierz CSV</button>
-            <button id="btn-print" class="btn btn-secondary">🖨️ Drukuj Plan</button>
+            <button id="btn-export-pdf" class="btn btn-secondary" style="border-color: var(--primary); color: #ffffff; font-weight: bold;">📄 Pobierz PDF (Karty Trasowania)</button>
         </div>
     </header>
 
@@ -189,8 +192,8 @@
                 </button>
             </div>
             <div>
-                <button id="btn-print-workshop" class="btn btn-secondary" style="font-size: 12px; padding: 5px 14px; font-weight: bold; border-color: var(--primary); color: #ffffff;">
-                    🖨️ Drukuj Karty Warsztatowe (A4)
+                <button id="btn-download-pdf-nodes" class="btn btn-secondary" style="font-size: 12px; padding: 5px 14px; font-weight: bold; border-color: var(--primary); color: #ffffff;">
+                    📄 Pobierz Karty PDF (W1 - W7)
                 </button>
             </div>
         </div>
@@ -210,8 +213,13 @@
 
         <!-- Widok 2: Karty Trasowania Wszystkich Węzłów (W1 - W7) -->
         <div id="bottom-view-node-cards" style="display: none; flex-direction: column; gap: 14px;">
-            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
-                Wszystkie wymiary w poniższych tabelach podano w milimetrach do trasowania taśmą mierniczą po obwodzie rury stalowej ($OD = 110\text{ mm}$, $C = 345.6\text{ mm}$) od Otworu #1 ($0.0\text{ mm}$).
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,209,178,0.08); border: 1px solid rgba(0,209,178,0.3); border-radius: 6px; padding: 10px 14px;">
+                <div style="font-size: 12px; color: #ffffff;">
+                    📐 <strong>Trasowanie otworów w grubej stali:</strong> Wszystkie wymiary w poniższych tabelach podano w milimetrach do trasowania taśmą mierniczą po obwodzie rury ($OD = 110\text{ mm}$, $C = 345.6\text{ mm}$) od Otworu #1 ($0.0\text{ mm}$).
+                </div>
+                <button id="btn-quick-pdf" class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px; font-weight: bold; background: rgba(0,209,178,0.25); border-color: var(--primary); color: #ffffff; white-space: nowrap; cursor: pointer;">
+                    📥 Pobierz Gotowy Plik PDF
+                </button>
             </div>
             <div id="all-node-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px;"></div>
         </div>
