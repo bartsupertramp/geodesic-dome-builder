@@ -177,13 +177,21 @@ class ThreeApp {
         ctx.lineWidth = 6;
         
         ctx.beginPath();
-        ctx.roundRect(12, 12, 232, 104, 20);
+        if (ctx.roundRect) {
+            ctx.roundRect(12, 12, 232, 104, 20);
+        } else {
+            ctx.rect(12, 12, 232, 104);
+        }
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = badgeColor;
         ctx.beginPath();
-        ctx.roundRect(16, 16, 24, 96, [16, 0, 0, 16]);
+        if (ctx.roundRect) {
+            ctx.roundRect(16, 16, 24, 96, [16, 0, 0, 16]);
+        } else {
+            ctx.rect(16, 16, 24, 96);
+        }
         ctx.fill();
 
         ctx.fillStyle = '#ffffff';

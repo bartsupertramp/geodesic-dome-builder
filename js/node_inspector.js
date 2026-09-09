@@ -15,6 +15,10 @@ class NodeInspector {
         this.initTabs();
     }
 
+    setDrillingMode(mode) {
+        this.drillingMode = mode;
+    }
+
     initTabs() {
         this.nodeView = document.getElementById('inspector-node-view');
         this.strutView = document.getElementById('inspector-strut-view');
@@ -33,13 +37,14 @@ class NodeInspector {
     }
 
     setTab(tabName) {
-        this.activeTab = tabName;
+        const normalized = (tabName || 'node').toLowerCase();
+        this.activeTab = normalized;
         if (!this.nodeView) this.nodeView = document.getElementById('inspector-node-view');
         if (!this.strutView) this.strutView = document.getElementById('inspector-strut-view');
         if (!this.tabBtnNode) this.tabBtnNode = document.getElementById('tab-btn-node');
         if (!this.tabBtnStrut) this.tabBtnStrut = document.getElementById('tab-btn-strut');
 
-        if (tabName === 'node') {
+        if (normalized === 'node') {
             if (this.nodeView) this.nodeView.style.display = 'flex';
             if (this.strutView) this.strutView.style.display = 'none';
             if (this.tabBtnNode) {
@@ -52,7 +57,7 @@ class NodeInspector {
                 this.tabBtnStrut.style.borderColor = 'var(--panel-border)';
                 this.tabBtnStrut.style.color = 'var(--text-muted)';
             }
-        } else if (tabName === 'strut') {
+        } else if (normalized === 'strut') {
             if (this.nodeView) this.nodeView.style.display = 'none';
             if (this.strutView) this.strutView.style.display = 'flex';
             if (this.tabBtnStrut) {

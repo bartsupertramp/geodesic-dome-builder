@@ -9,7 +9,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const geoMath = new GeodesicMath();
     const structEngine = new StructuralEngine();
-    // Domyślnie zawsze używaj precyzyjnego modelu sferycznego 3D
+    const inspector = new NodeInspector('canvas-2d', 'node-detail-content');
     inspector.setDrillingMode('SPHERICAL');
 
     let currentDomeData = null;
@@ -63,7 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectMode = document.getElementById('select-display-mode');
     const chkShowNodeLabels = document.getElementById('chk-show-node-labels');
     const chkShowStrutLabels = document.getElementById('chk-show-strut-labels');
+    const chkMiterCuts = document.getElementById('chk-miter-cuts');
     const inputLabelScale = document.getElementById('input-label-scale');
+    const selectLabelType = document.getElementById('select-label-type');
 
     // Inicjalizacja Three.js 3D
     const threeApp = new ThreeApp('canvas-3d-container', {
@@ -966,7 +968,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Zapis pliku PDF
         const fileName = `Karty_Trasowania_Wezlow_Kopula_${domeData.frequency}V_R${domeData.radius}m.pdf`;
         doc.save(fileName);
-=======
+    }
+
     function switchTab(tab) {
         activeTab = tab;
 
@@ -1009,7 +1012,6 @@ document.addEventListener('DOMContentLoaded', () => {
             selectMode.value = 'STRESS_HEATMAP';
             threeApp.setDisplayMode('STRESS_HEATMAP');
         }
->>>>>>> origin/main
     }
 
     function exportToCSV() {
@@ -1229,7 +1231,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const chkMiterCuts = document.getElementById('chk-miter-cuts');
     if (chkMiterCuts) {
         chkMiterCuts.addEventListener('change', () => {
             threeApp.setMiterCuts(chkMiterCuts.checked);
