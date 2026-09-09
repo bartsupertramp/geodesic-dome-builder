@@ -38,6 +38,7 @@ header {
     justify-content: space-between;
     align-items: center;
     height: 56px;
+    gap: 16px;
 }
 
 .logo-container {
@@ -51,9 +52,10 @@ header {
 }
 
 h1 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: #ffffff;
+    white-space: nowrap;
 }
 
 .badge-4v {
@@ -65,9 +67,46 @@ h1 {
     border-radius: 4px;
 }
 
+/* Przełącznik Zakładek Głównych (Tab Navigation) */
+.nav-tabs-container {
+    display: flex;
+    background: #10161f;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    gap: 4px;
+}
+
+.nav-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.nav-tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab.active {
+    background: var(--primary);
+    color: #000000;
+    box-shadow: 0 2px 8px rgba(0, 209, 178, 0.35);
+}
+
 .header-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 /* Główny Kontener Aplikacji */
@@ -424,7 +463,220 @@ canvas {
     background-color: rgba(0, 209, 178, 0.05);
 }
 
-/* Profesjonalny Układ do Wydruku A4 (Print Stylesheet) */
+/* Nakładka Legendy Heat Map w Widoku 3D */
+.heatmap-legend-hud {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background-color: rgba(16, 22, 31, 0.90);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--panel-border);
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    min-width: 280px;
+}
+
+.heatmap-gradient-bar {
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(to right, #0074D9 0%, #00D1B2 30%, #2ECC40 60%, #FFDC00 80%, #FF4136 100%, #E056FD 120%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.heatmap-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Karta Audytu Wytrzymałościowego */
+.audit-card {
+    background-color: #10161f;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.status-safe {
+    background: rgba(46, 204, 64, 0.15);
+    color: #2ecc40;
+    border: 1px solid #2ecc40;
+}
+
+.status-warning {
+    background: rgba(255, 220, 0, 0.15);
+    color: #ffdc00;
+    border: 1px solid #ffdc00;
+}
+
+.status-critical {
+    background: rgba(255, 65, 54, 0.2);
+    color: #ff4136;
+    border: 1px solid #ff4136;
+}
+
+/* Pasek Postępu Wytężenia (Utilization Progress Bar) */
+.util-bar-container {
+    width: 100%;
+    background-color: #1e293b;
+    border-radius: 6px;
+    height: 14px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--panel-border);
+}
+
+.util-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.util-bar-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 14px;
+    color: #ffffff;
+    text-shadow: 0 1px 2px #000000;
+    top: 0;
+    left: 0;
+}
+
+/* Siatka statystyk */
+.strength-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.stat-item {
+    background: #161e27;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--panel-border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 13px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.tab-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.tab-panel.hidden {
+    display: none !important;
+}
+
+/* Karta Zafiksowanej Geometrii */
+.locked-param-card {
+    background: #10161f;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.locked-param-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(43, 56, 70, 0.6);
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+}
+
+.locked-param-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--primary);
+    text-transform: uppercase;
+}
+
+.locked-param-lock-icon {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.locked-param-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.locked-param-item {
+    background: #161e27;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--panel-border);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.locked-param-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.locked-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.locked-value {
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.locked-subtext {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.2;
+}
 @media print {
     @page {
         size: A4 portrait;
