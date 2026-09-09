@@ -20,6 +20,7 @@ class ThreeApp {
         this.showStrutLabels = true;
         this.labelType = 'CODE';
         this.labelScale = 0.5;
+        this.structuralData = null;
         
         this.selectedNodeId = null;
         this.selectedEdgeId = null;
@@ -31,6 +32,13 @@ class ThreeApp {
 
         window.addEventListener('resize', () => this.onWindowResize());
         this.animate();
+    }
+
+    setStructuralData(data) {
+        this.structuralData = data;
+        if (this.currentData) {
+            this.buildDome3D(this.currentData);
+        }
     }
 
     initScene() {
@@ -290,8 +298,16 @@ class ThreeApp {
             this.domeGroup.add(nodeGroup);
             this.nodeMeshes.push(pipeMesh);
 
-            const labelText = `#${node.id + 1} ${node.nodeTypeCode || 'W'}`;
-            const spriteColor = node.nodeTypeColor || '#00d1b2';
+            let labelText = `#${node.id + 1} ${node.nodeTypeCode || 'W'}`;
+            let spriteColor = node.nodeTypeColor || '#00d1b2';
+
+            if (this.displayMode === 'STRESS_HEATMAP' && this.structuralData && this.structuralData.nodes && this.structuralData.nodes[node.id]) {
+                const nodeStress = this.structuralData.nodes[node.id];
+                spriteColor = nodeStress.heatColor;
+                labelText = `#${node.id + 1} ${nodeStress.utilizationPct.toFixed(0)}%`;
+                pipeMesh.material.color.setStyle(nodeStress.heatColor);
+            }
+
             const sprite = this.createBadgeSprite(labelText, spriteColor, 28);
             
             const spritePos = new THREE.Vector3(...node.pos).add(normVec.clone().multiplyScalar(0.08));
@@ -336,8 +352,13 @@ class ThreeApp {
             const strutGeo = new THREE.BoxGeometry(timberW, timberH, actualCutLen);
 
             let strutColor = edge.color || '#FF4136';
+            let variantText = `#${edge.id + 1} ${edge.strutType}`;
             
-            if (this.displayMode === 'PITCH_HEATMAP') {
+            if (this.displayMode === 'STRESS_HEATMAP' && this.structuralData && this.structuralData.struts && this.structuralData.struts[edge.id]) {
+                const sStress = this.structuralData.struts[edge.id];
+                strutColor = sStress.heatColor;
+                variantText = `#${edge.id + 1} η=${sStress.utilizationPct.toFixed(0)}%`;
+            } else if (this.displayMode === 'PITCH_HEATMAP') {
                 const avgPitch = (domeData.vertices[edge.v1].pitchAngleDeg + domeData.vertices[edge.v2].pitchAngleDeg) / 2;
                 const normVal = Math.min(1.0, Math.max(0.0, (avgPitch - 4.0) / 7.0));
                 const hue = (1.0 - normVal) * 0.33;
@@ -384,7 +405,6 @@ class ThreeApp {
             this.domeGroup.add(strutMesh);
             this.strutMeshes.push(strutMesh);
 
-            const variantText = `#${edge.id + 1} ${edge.strutType}`;
             const strutSprite = this.createBadgeSprite(variantText, strutColor, 28);
             const labelPos = midPoint.clone().add(upVec.clone().multiplyScalar(0.04));
             strutSprite.position.copy(labelPos);
@@ -508,6 +528,19 @@ class ThreeApp {
             this.selectedMesh = nodeMesh;
             if (nodeMesh.material && nodeMesh.material.emissive) {
                 nodeMesh.material.emissive.setHex(0x00ffff);
+            }
+        }
+    }
+
+    selectStrutById(edgeId) {
+        const strutMesh = this.strutMeshes.find(m => m.userData && m.userData.type === 'STRUT' && m.userData.edgeId === edgeId);
+        if (strutMesh) {
+            if (this.selectedMesh && this.selectedMesh.material && this.selectedMesh.material.emissive) {
+                this.selectedMesh.material.emissive.setHex(0x000000);
+            }
+            this.selectedMesh = strutMesh;
+            if (strutMesh.material && strutMesh.material.emissive) {
+                strutMesh.material.emissive.setHex(0x00ffff);
             }
         }
     }
